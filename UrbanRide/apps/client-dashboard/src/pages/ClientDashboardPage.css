@@ -1,0 +1,36 @@
+.dashboard {
+  padding: 24px;
+}
+
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-header h2 {
+  margin: 0 0 8px;
+}
+
+.dashboard-header p {
+  margin: 0;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-stat {
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.dashboard-stat h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.dashboard-stat strong {
+  font-size: 28px;
+}

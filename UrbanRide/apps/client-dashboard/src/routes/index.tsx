@@ -1,19 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ClientLayout } from '../layouts/ClientLayout'
 import { ClientDashboardPage } from '../pages/ClientDashboardPage'
+import { EmployeesPage } from '../pages/EmployeesPage'
+import { RidesPage } from '../pages/RidesPage'
+import { SettingsPage } from '../pages/SettingsPage'
 import { ROUTE_PATHS } from './route-paths'
-
-function EmployeesPage() {
-  return <h2>Employees</h2>
-}
-
-function RidesPage() {
-  return <h2>Rides</h2>
-}
-
-function SettingsPage() {
-  return <h2>Settings</h2>
-}
 
 export function AppRoutes() {
   return (

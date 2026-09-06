@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
-import { ROUTE_PATHS } from '../routes/route-paths'
+import { UserMenu } from '../components/ui/UserMenu'
+import { ClientNavigation } from '../components/ClientNavigation'
+import './ClientLayout.css'
 
 type ClientLayoutProps = {
   children: ReactNode
@@ -8,23 +9,23 @@ type ClientLayoutProps = {
 
 export function ClientLayout({ children }: ClientLayoutProps) {
   return (
-    <div>
-      <header>
-        <h1>UrbanRide</h1>
-        <p>Client Dashboard</p>
+    <div className="client-layout">
+      <header className="client-header">
+        <div className="client-header-top">
+          <div>
+            <h1>UrbanRide</h1>
+            <p>Client Dashboard</p>
+          </div>
 
-        <nav>
-          <NavLink to={ROUTE_PATHS.dashboard}>Dashboard</NavLink>
-          {' | '}
-          <NavLink to={ROUTE_PATHS.employees}>Employees</NavLink>
-          {' | '}
-          <NavLink to={ROUTE_PATHS.rides}>Rides</NavLink>
-          {' | '}
-          <NavLink to={ROUTE_PATHS.settings}>Settings</NavLink>
-        </nav>
+          <UserMenu />
+        </div>
+
+        <div className="client-navigation">
+          <ClientNavigation />
+        </div>
       </header>
 
-      <main>{children}</main>
+      <main className="client-main">{children}</main>
     </div>
   )
 }
