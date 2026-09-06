@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "UrbanRide Rider",
+    "slug": "urbanride-rider",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic"
+  }
+}

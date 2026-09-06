@@ -2,5 +2,22 @@
   "name": "@ride-platform/rider-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Expo and React Native rider application"
+  "description": "Expo and React Native rider application",
+  "dependencies": {
+    "expo": "^57.0.20",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-web": "^0.21.2"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "typescript": "^6.0.3"
+  }
 }
