@@ -1,0 +1,9 @@
+{
+  "name": "@ride-platform/types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-client type contracts",
+  "scripts": {
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  }
+}

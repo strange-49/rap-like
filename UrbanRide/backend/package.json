@@ -1,0 +1,15 @@
+{
+  "name": "@ride-platform/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Framework-free Node.js and TypeScript backend",
+  "scripts": {
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.10.0"
+  }
+}

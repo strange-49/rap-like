@@ -1,0 +1,9 @@
+packages:
+  - "UrbanRide"
+  - "UrbanRide/apps/*"
+  - "UrbanRide/backend"
+  - "UrbanRide/packages/*"
+allowBuilds:
+  '@prisma/engines': false
+  esbuild: false
+  prisma: false

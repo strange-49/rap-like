@@ -1,0 +1,6 @@
+{
+  "name": "@ride-platform/rider-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Expo and React Native rider application"
+}

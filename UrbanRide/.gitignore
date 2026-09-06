@@ -1,0 +1,25 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+backend/src/generated/prisma/
+
+# Local environment configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and editor/OS files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Mobile tooling
+apps/rider-mobile/.expo/
+apps/rider-mobile/android/
+apps/rider-mobile/ios/
+
+*.tsbuildinfo

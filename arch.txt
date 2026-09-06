@@ -1,0 +1,123 @@
+01. AGENTS.md
+    └── Project rules, architecture, tech stack, roles
+
+02. Development environment
+    ├── Node.js
+    ├── npm
+    ├── Git
+    └── Environment variables
+
+03. Monorepo
+    ├── apps/
+    ├── backend/
+    └── packages/
+
+04. Backend foundation
+    ├── Node.js
+    ├── TypeScript
+    ├── REST API
+    ├── Error handling
+    ├── Validation
+    └── Logging
+
+05. Database
+    ├── PostgreSQL
+    ├── Prisma
+    ├── Schema
+    ├── Migrations
+    └── Seed data
+
+06. Authentication & Security
+    ├── Registration/Login
+    ├── OTP
+    ├── Sessions/tokens
+    ├── RBAC
+    └── Multi-tenancy / tenant isolation
+
+07. Shared packages
+    ├── Types
+    ├── Validation schemas
+    ├── Constants
+    └── Shared utilities
+
+08. Customer Web
+    └── React
+
+09. Corporate Client Dashboard
+    └── React
+
+10. Admin Dashboard
+    └── React
+
+11. Rider Mobile App
+    └── React Native
+
+12. Core Ride System
+    ├── Ride lifecycle
+    ├── Rider matching
+    ├── Ride assignment
+    ├── Cancellation
+    └── Fare calculation
+
+13. Real-time system
+    └── WebSockets
+
+14. Location & Maps
+    ├── OpenStreetMap
+    ├── Geocoding
+    ├── Routing
+    ├── Distance
+    └── ETA
+
+15. Notifications
+    └── Firebase Cloud Messaging
+
+16. Payments
+    └── Razorpay
+
+17. Communication
+    └── Twilio
+
+18. Corporate features
+    ├── Companies
+    ├── Employees
+    ├── Employee rides
+    ├── Corporate billing
+    └── Reports
+
+19. Admin / Operations
+    ├── Rider management
+    ├── Customer management
+    ├── Client management
+    ├── Ride monitoring
+    ├── Payments
+    └── Complaints
+
+20. Testing
+    ├── Unit tests
+    ├── API tests
+    ├── Integration tests
+    └── Frontend tests
+
+21. Deployment
+    ├── Frontend deployment
+    ├── Backend deployment
+    ├── PostgreSQL production DB
+    ├── Environment variables
+    ├── CI/CD
+    └── Monitoring
+
+
+Backend:
+server.ts → starts the Node.js server.
+app.ts → sets up the backend application.
+routes/ → place where our API endpoints will live.
+health.routes.ts → basic /health and /ready endpoints to check whether the server is alive/ready.
+common/errors/ → standard way to handle backend errors.
+common/logging/ → logging setup.
+common/middleware/ → reusable request-processing logic.
+common/validation/ → place for request validation infrastructure.
+config/ → handles environment/configuration.
+modules/ → empty for now; later we'll put Customer, Rider, Ride, Payment, etc. modules here.
+realtime/ → empty for now; later WebSockets.
+tests/ → reserved for backend tests.

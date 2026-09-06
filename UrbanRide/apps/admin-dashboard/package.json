@@ -1,0 +1,6 @@
+{
+  "name": "@ride-platform/admin-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform administration dashboard"
+}

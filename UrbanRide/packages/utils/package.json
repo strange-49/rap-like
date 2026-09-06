@@ -1,0 +1,9 @@
+{
+  "name": "@ride-platform/utils",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Environment-neutral shared utilities",
+  "scripts": {
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  }
+}
