@@ -1,6 +1,9 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+
+import { toggleOnline } from '../store/riderSlice';
+import type { RootState, AppDispatch } from '../store/store';
 
 type RootStackParamList = {
   RideRequests: undefined;
@@ -10,7 +13,8 @@ type RootStackParamList = {
 type Props = NativeStackScreenProps<RootStackParamList>;
 
 export default function HomeScreen({ navigation }: Props) {
-  const [isOnline, setIsOnline] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const isOnline = useSelector((state: RootState) => state.rider.isOnline);
 
   return (
     <View style={styles.container}>
@@ -26,7 +30,7 @@ export default function HomeScreen({ navigation }: Props) {
 
         <Pressable
           style={styles.primaryButton}
-          onPress={() => setIsOnline((current) => !current)}
+          onPress={() => dispatch(toggleOnline())}
         >
           <Text style={styles.primaryButtonText}>
             {isOnline ? 'Go Offline' : 'Go Online'}
