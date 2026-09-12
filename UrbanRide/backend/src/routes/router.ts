@@ -2,6 +2,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { sendError } from '../common/errors/http-error-handler';
 import type { HttpHandler } from '../common/middleware/request-logging.middleware';
+import {
+  handleGeocode,
+  handleReverseGeocode,
+} from '../modules/location/location.controller';
 import { handleRideRoutes } from '../modules/rides/ride/ride.routes';
 import { sendHealth, sendReadiness } from './health.routes';
 
@@ -26,6 +30,28 @@ export function createRouter(
 
       if (url.pathname === '/rides' || url.pathname.startsWith('/rides/')) {
         const handled = await rideRoutes(request, response);
+
+        if (handled) {
+          return;
+        }
+      }
+
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/location/geocode'
+      ) {
+        const handled = await handleGeocode(request, response);
+
+        if (handled) {
+          return;
+        }
+      }
+
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/location/reverse-geocode'
+      ) {
+        const handled = await handleReverseGeocode(request, response);
 
         if (handled) {
           return;

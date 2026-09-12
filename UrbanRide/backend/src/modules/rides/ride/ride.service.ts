@@ -2,6 +2,7 @@ import type { RideStatus } from '../../../generated/prisma/client';
 
 import { AppError } from '../../../common/errors/app-error';
 import { rideEvents } from '../../../realtime/realtime';
+import { getDrivingRoute } from '../../location/map.service';
 import { assertTransition } from './ride.lifecycle';
 import { calculateEstimatedFare } from './ride.fare';
 import {
@@ -25,10 +26,19 @@ export interface RequestRideInput {
 }
 
 export async function requestRide(input: RequestRideInput) {
-  const estimatedFare =
-    input.estimatedDistance !== undefined
-      ? calculateEstimatedFare(input.estimatedDistance)
-      : input.estimatedFare;
+  const route = await getDrivingRoute(
+    {
+      latitude: input.pickupLatitude,
+      longitude: input.pickupLongitude,
+    },
+    {
+      latitude: input.dropLatitude,
+      longitude: input.dropLongitude,
+    },
+  );
+
+  const estimatedDistance = route.distanceInKilometers;
+  const estimatedFare = calculateEstimatedFare(estimatedDistance);
 
   const ride = await createRide({
     customerId: input.customerId,
@@ -38,7 +48,7 @@ export async function requestRide(input: RequestRideInput) {
     dropAddress: input.dropAddress,
     dropLatitude: input.dropLatitude,
     dropLongitude: input.dropLongitude,
-    estimatedDistance: input.estimatedDistance,
+    estimatedDistance,
     estimatedFare,
     status: 'REQUESTED',
   });
@@ -46,6 +56,9 @@ export async function requestRide(input: RequestRideInput) {
   rideEvents.publish('ride.requested', ride.id, {
     customerId: ride.customerId,
     status: ride.status,
+    estimatedDistance,
+    estimatedFare,
+    durationInMinutes: route.durationInMinutes,
   });
 
   return ride;
