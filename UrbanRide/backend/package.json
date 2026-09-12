@@ -4,12 +4,19 @@
   "private": true,
   "description": "Framework-free Node.js and TypeScript backend",
   "scripts": {
+    "dev": "tsx src/server.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^7.10.0"
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
   }
 }

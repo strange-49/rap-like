@@ -1,8 +1,8 @@
 export class AppError extends Error {
-  public constructor(
+  constructor(
     message: string,
     public readonly statusCode = 500,
-    public readonly code = 'INTERNAL_ERROR',
+    public readonly code = 'INTERNAL_SERVER_ERROR',
   ) {
     super(message);
     this.name = 'AppError';

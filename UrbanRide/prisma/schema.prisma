@@ -7,3 +7,53 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum RideStatus {
+  REQUESTED
+  SEARCHING
+  ASSIGNED
+  DRIVER_ARRIVING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CancellationReason {
+  CUSTOMER
+  RIDER
+  SYSTEM
+}
+
+model Ride {
+  id                String             @id @default(cuid())
+  customerId        String
+  riderId           String?
+  status            RideStatus         @default(REQUESTED)
+
+  pickupAddress     String
+  pickupLatitude    Decimal            @db.Decimal(10, 7)
+  pickupLongitude   Decimal            @db.Decimal(10, 7)
+
+  dropAddress       String
+  dropLatitude      Decimal            @db.Decimal(10, 7)
+  dropLongitude     Decimal            @db.Decimal(10, 7)
+
+  estimatedDistance Decimal?           @db.Decimal(10, 2)
+  estimatedFare     Decimal?           @db.Decimal(10, 2)
+  finalFare         Decimal?           @db.Decimal(10, 2)
+
+  cancellationReason CancellationReason?
+  cancelledAt        DateTime?
+
+  requestedAt       DateTime           @default(now())
+  assignedAt        DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([customerId])
+  @@index([riderId])
+  @@index([status])
+  @@index([requestedAt])
+}
