@@ -1,6 +1,7 @@
 import type { RideStatus } from '../../../generated/prisma/client';
 
 import { AppError } from '../../../common/errors/app-error';
+import { rideEvents } from '../../../realtime/realtime';
 import { assertTransition } from './ride.lifecycle';
 import { calculateEstimatedFare } from './ride.fare';
 import {
@@ -23,13 +24,13 @@ export interface RequestRideInput {
   estimatedFare?: number;
 }
 
-export function requestRide(input: RequestRideInput) {
+export async function requestRide(input: RequestRideInput) {
   const estimatedFare =
     input.estimatedDistance !== undefined
       ? calculateEstimatedFare(input.estimatedDistance)
       : input.estimatedFare;
 
-  return createRide({
+  const ride = await createRide({
     customerId: input.customerId,
     pickupAddress: input.pickupAddress,
     pickupLatitude: input.pickupLatitude,
@@ -41,6 +42,13 @@ export function requestRide(input: RequestRideInput) {
     estimatedFare,
     status: 'REQUESTED',
   });
+
+  rideEvents.publish('ride.requested', ride.id, {
+    customerId: ride.customerId,
+    status: ride.status,
+  });
+
+  return ride;
 }
 
 export function getRideById(id: string) {
@@ -88,7 +96,14 @@ export async function assignRider(
 
   assertTransition(ride.status, 'ASSIGNED');
 
-  return assignRide(id, riderId);
+  const updatedRide = await assignRide(id, riderId);
+
+  rideEvents.publish('ride.assigned', id, {
+    riderId,
+    status: updatedRide.status,
+  });
+
+  return updatedRide;
 }
 
 export async function markDriverArriving(id: string) {
@@ -104,9 +119,16 @@ export async function markDriverArriving(id: string) {
 
   assertTransition(ride.status, 'DRIVER_ARRIVING');
 
-  return updateRide(id, {
+  const updatedRide = await updateRide(id, {
     status: 'DRIVER_ARRIVING',
   });
+
+  rideEvents.publish('ride.driver_arriving', id, {
+    riderId: updatedRide.riderId,
+    status: updatedRide.status,
+  });
+
+  return updatedRide;
 }
 
 export async function startRide(id: string) {
@@ -122,10 +144,17 @@ export async function startRide(id: string) {
 
   assertTransition(ride.status, 'IN_PROGRESS');
 
-  return updateRide(id, {
+  const updatedRide = await updateRide(id, {
     status: 'IN_PROGRESS',
     startedAt: new Date(),
   });
+
+  rideEvents.publish('ride.started', id, {
+    riderId: updatedRide.riderId,
+    status: updatedRide.status,
+  });
+
+  return updatedRide;
 }
 
 export async function completeRide(id: string) {
@@ -141,10 +170,18 @@ export async function completeRide(id: string) {
 
   assertTransition(ride.status, 'COMPLETED');
 
-  return updateRide(id, {
+  const updatedRide = await updateRide(id, {
     status: 'COMPLETED',
     completedAt: new Date(),
   });
+
+  rideEvents.publish('ride.completed', id, {
+    customerId: updatedRide.customerId,
+    riderId: updatedRide.riderId,
+    status: updatedRide.status,
+  });
+
+  return updatedRide;
 }
 
 export async function cancelRide(
@@ -163,9 +200,18 @@ export async function cancelRide(
 
   assertTransition(ride.status, 'CANCELLED');
 
-  return updateRide(id, {
+  const updatedRide = await updateRide(id, {
     status: 'CANCELLED',
     cancellationReason: reason,
     cancelledAt: new Date(),
   });
+
+  rideEvents.publish('ride.cancelled', id, {
+    customerId: updatedRide.customerId,
+    riderId: updatedRide.riderId,
+    reason,
+    status: updatedRide.status,
+  });
+
+  return updatedRide;
 }
