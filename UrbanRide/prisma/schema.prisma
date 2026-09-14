@@ -57,3 +57,14 @@ model Ride {
   @@index([status])
   @@index([requestedAt])
 }
+
+model RiderDeviceToken {
+  id        String   @id @default(cuid())
+  riderId   String
+  token     String   @unique
+  platform  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([riderId])
+}

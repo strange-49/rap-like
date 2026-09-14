@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "854279427469",
+    "project_id": "urbanride-f3db5",
+    "storage_bucket": "urbanride-f3db5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:854279427469:android:13df554e25e6bc017519c4",
+        "android_client_info": {
+          "package_name": "com.urbanride.rider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA43CFhv7jywh8thRPyMAgJEFlcv7CGn1g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

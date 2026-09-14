@@ -4,9 +4,11 @@ packages:
   - "UrbanRide/backend"
   - "UrbanRide/packages/*"
 allowBuilds:
+  '@firebase/util': false
   '@prisma/engines': false
   esbuild: false
   prisma: false
+  protobufjs: false
 minimumReleaseAgeExclude:
   - '@expo/cli@57.0.24'
   - '@expo/fingerprint@0.20.13'
@@ -19,3 +21,6 @@ minimumReleaseAgeExclude:
   - expo-modules-autolinking@57.0.13
   - expo-modules-core@57.0.18
   - expo@57.0.22
+  - expo-application@57.0.3
+  - expo-device@57.0.2
+  - expo-notifications@57.0.18

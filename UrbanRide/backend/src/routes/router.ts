@@ -3,6 +3,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { sendError } from '../common/errors/http-error-handler';
 import type { HttpHandler } from '../common/middleware/request-logging.middleware';
 import {
+  handleDeviceTokenRoutes,
+} from '../modules/notifications/device-token.controller';
+import { handleNotificationTest } from '../modules/notifications/notification.controller';
+import {
   handleGeocode,
   handleReverseGeocode,
 } from '../modules/location/location.controller';
@@ -36,6 +40,31 @@ export function createRouter(
         }
       }
 
+      if (url.pathname.startsWith('/notifications/')) {
+        const handled = await handleDeviceTokenRoutes(
+          request,
+          response,
+        );
+
+        if (handled) {
+          return;
+        }
+
+        if (
+          request.method === 'POST' &&
+          url.pathname === '/notifications/test'
+        ) {
+          const testHandled = await handleNotificationTest(
+            request,
+            response,
+          );
+
+          if (testHandled) {
+            return;
+          }
+        }
+      }
+
       if (
         request.method === 'GET' &&
         url.pathname === '/location/geocode'
@@ -51,7 +80,10 @@ export function createRouter(
         request.method === 'GET' &&
         url.pathname === '/location/reverse-geocode'
       ) {
-        const handled = await handleReverseGeocode(request, response);
+        const handled = await handleReverseGeocode(
+          request,
+          response,
+        );
 
         if (handled) {
           return;

@@ -53,7 +53,7 @@ export async function requestRide(input: RequestRideInput) {
     status: 'REQUESTED',
   });
 
-  rideEvents.publish('ride.requested', ride.id, {
+  await rideEvents.publish('ride.requested', ride.id, {
     customerId: ride.customerId,
     status: ride.status,
     estimatedDistance,
@@ -111,7 +111,7 @@ export async function assignRider(
 
   const updatedRide = await assignRide(id, riderId);
 
-  rideEvents.publish('ride.assigned', id, {
+  await rideEvents.publish('ride.assigned', id, {
     riderId,
     status: updatedRide.status,
   });
@@ -136,7 +136,7 @@ export async function markDriverArriving(id: string) {
     status: 'DRIVER_ARRIVING',
   });
 
-  rideEvents.publish('ride.driver_arriving', id, {
+  await rideEvents.publish('ride.driver_arriving', id, {
     riderId: updatedRide.riderId,
     status: updatedRide.status,
   });
@@ -162,7 +162,7 @@ export async function startRide(id: string) {
     startedAt: new Date(),
   });
 
-  rideEvents.publish('ride.started', id, {
+  await rideEvents.publish('ride.started', id, {
     riderId: updatedRide.riderId,
     status: updatedRide.status,
   });
@@ -188,7 +188,7 @@ export async function completeRide(id: string) {
     completedAt: new Date(),
   });
 
-  rideEvents.publish('ride.completed', id, {
+  await rideEvents.publish('ride.completed', id, {
     customerId: updatedRide.customerId,
     riderId: updatedRide.riderId,
     status: updatedRide.status,
@@ -219,7 +219,7 @@ export async function cancelRide(
     cancelledAt: new Date(),
   });
 
-  rideEvents.publish('ride.cancelled', id, {
+  await rideEvents.publish('ride.cancelled', id, {
     customerId: updatedRide.customerId,
     riderId: updatedRide.riderId,
     reason,
