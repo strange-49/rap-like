@@ -16,6 +16,7 @@
     "@types/ws": "^8.18.1",
     "firebase-admin": "^14.4.0",
     "pg": "^8.23.0",
+    "razorpay": "2.9.8",
     "ws": "^8.21.3"
   },
   "devDependencies": {

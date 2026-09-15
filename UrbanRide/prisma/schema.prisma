@@ -25,32 +25,32 @@ enum CancellationReason {
 }
 
 model Ride {
-  id                String             @id @default(cuid())
-  customerId        String
-  riderId           String?
-  status            RideStatus         @default(REQUESTED)
+  id         String     @id @default(cuid())
+  customerId String
+  riderId    String?
+  status     RideStatus @default(REQUESTED)
 
-  pickupAddress     String
-  pickupLatitude    Decimal            @db.Decimal(10, 7)
-  pickupLongitude   Decimal            @db.Decimal(10, 7)
+  pickupAddress   String
+  pickupLatitude  Decimal @db.Decimal(10, 7)
+  pickupLongitude Decimal @db.Decimal(10, 7)
 
-  dropAddress       String
-  dropLatitude      Decimal            @db.Decimal(10, 7)
-  dropLongitude     Decimal            @db.Decimal(10, 7)
+  dropAddress   String
+  dropLatitude  Decimal @db.Decimal(10, 7)
+  dropLongitude Decimal @db.Decimal(10, 7)
 
-  estimatedDistance Decimal?           @db.Decimal(10, 2)
-  estimatedFare     Decimal?           @db.Decimal(10, 2)
-  finalFare         Decimal?           @db.Decimal(10, 2)
+  estimatedDistance Decimal? @db.Decimal(10, 2)
+  estimatedFare     Decimal? @db.Decimal(10, 2)
+  finalFare         Decimal? @db.Decimal(10, 2)
 
   cancellationReason CancellationReason?
   cancelledAt        DateTime?
 
-  requestedAt       DateTime           @default(now())
-  assignedAt        DateTime?
-  startedAt         DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  requestedAt DateTime  @default(now())
+  assignedAt  DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([customerId])
   @@index([riderId])
@@ -67,4 +67,29 @@ model RiderDeviceToken {
   updatedAt DateTime @updatedAt
 
   @@index([riderId])
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id     String        @id @default(cuid())
+  rideId String        @unique
+  amount Decimal       @db.Decimal(10, 2)
+  status PaymentStatus @default(PENDING)
+
+  razorpayOrderId   String? @unique
+  razorpayPaymentId String? @unique
+  razorpaySignature String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }

@@ -6,6 +6,7 @@ import {
   handleDeviceTokenRoutes,
 } from '../modules/notifications/device-token.controller';
 import { handleNotificationTest } from '../modules/notifications/notification.controller';
+import { handlePaymentRoutes } from '../modules/payments/payment.routes';
 import {
   handleGeocode,
   handleReverseGeocode,
@@ -62,6 +63,17 @@ export function createRouter(
           if (testHandled) {
             return;
           }
+        }
+      }
+
+      if (url.pathname.startsWith('/payments/')) {
+        const handled = await handlePaymentRoutes(
+          request,
+          response,
+        );
+
+        if (handled) {
+          return;
         }
       }
 

@@ -1,4 +1,5 @@
 import { MapView } from '../components/MapView'
+import { PaymentCard } from '../components/PaymentCard'
 import { RideBookingCard } from '../components/RideBookingCard'
 
 export function HomePage() {
@@ -8,6 +9,8 @@ export function HomePage() {
       <p>Get where you need to go with UrbanRide.</p>
 
       <RideBookingCard />
+
+      <PaymentCard />
 
       <MapView
         pickup={{
