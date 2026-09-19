@@ -49,3 +49,14 @@ export function assignRide(
     },
   });
 }
+
+export function findCorporateRides(corporateAccountId: string) {
+  return prisma.ride.findMany({
+    where: {
+      corporateAccountId,
+    },
+    orderBy: {
+      requestedAt: 'desc',
+    },
+  });
+}

@@ -6,7 +6,8 @@ import {
   handleDeviceTokenRoutes,
 } from '../modules/notifications/device-token.controller';
 import { handleNotificationTest } from '../modules/notifications/notification.controller';
-import { handleCommunicationRoutes } from '../modules/communication/communication.routes';
+import { handleCommunicationRoutes } from '../modules/communication/communication.routes'
+import { handleCorporateRoutes } from '../modules/corporate/corporate.routes'
 import { handlePaymentRoutes } from '../modules/payments/payment.routes';
 import {
   handleGeocode,
@@ -78,6 +79,17 @@ export function createRouter(
         }
       }
 
+      if (url.pathname.startsWith('/corporate/')) {
+        const handled = await handleCorporateRoutes(
+          request,
+          response,
+        )
+
+        if (handled) {
+          return
+        }
+      }
+
       if (url.pathname.startsWith('/payments/')) {
         const handled = await handlePaymentRoutes(
           request,
@@ -141,3 +153,6 @@ export function createRouter(
     }
   };
 }
+
+
+

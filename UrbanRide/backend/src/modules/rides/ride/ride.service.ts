@@ -15,6 +15,7 @@ import {
 
 export interface RequestRideInput {
   customerId: string;
+  corporateAccountId?: string;
   pickupAddress: string;
   pickupLatitude: number;
   pickupLongitude: number;
@@ -42,7 +43,13 @@ export async function requestRide(input: RequestRideInput) {
 
   const ride = await createRide({
     customerId: input.customerId,
-    pickupAddress: input.pickupAddress,
+    ...(input.corporateAccountId
+      ? {
+          corporateAccount: {
+            connect: { id: input.corporateAccountId },
+          },
+        }
+      : {}),    pickupAddress: input.pickupAddress,
     pickupLatitude: input.pickupLatitude,
     pickupLongitude: input.pickupLongitude,
     dropAddress: input.dropAddress,
@@ -228,3 +235,4 @@ export async function cancelRide(
 
   return updatedRide;
 }
+

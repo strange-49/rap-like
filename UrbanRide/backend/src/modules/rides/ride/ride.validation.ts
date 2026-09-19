@@ -2,6 +2,7 @@ import { AppError } from '../../../common/errors/app-error';
 
 export interface ValidatedRequestRideInput {
   customerId: string;
+  corporateAccountId?: string;
   pickupAddress: string;
   pickupLatitude: number;
   pickupLongitude: number;
@@ -26,6 +27,11 @@ export function validateRequestRideInput(
   }
 
   const customerId = requireString(input.customerId, 'customerId');
+  const corporateAccountId =
+    input.corporateAccountId === undefined
+      ? undefined
+      : requireString(input.corporateAccountId, 'corporateAccountId');
+
   const pickupAddress = requireString(input.pickupAddress, 'pickupAddress');
   const pickupLatitude = requireNumber(
     input.pickupLatitude,
@@ -75,6 +81,7 @@ export function validateRequestRideInput(
 
   return {
     customerId,
+    corporateAccountId,
     pickupAddress,
     pickupLatitude,
     pickupLongitude,

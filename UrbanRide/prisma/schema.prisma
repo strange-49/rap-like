@@ -27,6 +27,7 @@ enum CancellationReason {
 model Ride {
   id         String     @id @default(cuid())
   customerId String
+  corporateAccountId String?
   riderId    String?
   status     RideStatus @default(REQUESTED)
 
@@ -52,8 +53,12 @@ model Ride {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  corporateAccount CorporateAccount? @relation(fields: [corporateAccountId], references: [id], onDelete: SetNull)
+  payment Payment?
+
   @@index([customerId])
   @@index([riderId])
+  @@index([corporateAccountId])
   @@index([status])
   @@index([requestedAt])
 }
@@ -67,6 +72,7 @@ model RiderDeviceToken {
   updatedAt DateTime @updatedAt
 
   @@index([riderId])
+
 }
 
 enum PaymentStatus {
@@ -90,6 +96,47 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+    ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
   @@index([status])
   @@index([createdAt])
 }
+
+model CorporateAccount {
+  id           String             @id @default(cuid())
+  name         String
+  billingEmail String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  employees CorporateEmployee[]
+  rides     Ride[]
+
+  @@index([name])
+}
+
+model CorporateEmployee {
+  id                String          @id @default(cuid())
+  corporateAccountId String
+  name              String
+  email             String          @unique
+  phone             String?
+  active            Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  corporateAccount CorporateAccount @relation(fields: [corporateAccountId], references: [id], onDelete: Cascade)
+
+  @@index([corporateAccountId])
+  @@index([active])
+}
+
+
+
+
+
+
+
+
+
+

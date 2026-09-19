@@ -117,7 +117,7 @@ export async function createRazorpayOrder(rideId: string) {
   });
 
   return createPayment({
-    rideId,
+    ride: { connect: { id: rideId } },
     amount: amountInRupees,
     status: 'PENDING',
     razorpayOrderId: order.id,
