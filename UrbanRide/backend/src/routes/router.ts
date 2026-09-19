@@ -6,6 +6,7 @@ import {
   handleDeviceTokenRoutes,
 } from '../modules/notifications/device-token.controller';
 import { handleNotificationTest } from '../modules/notifications/notification.controller';
+import { handleCommunicationRoutes } from '../modules/communication/communication.routes';
 import { handlePaymentRoutes } from '../modules/payments/payment.routes';
 import {
   handleGeocode,
@@ -63,6 +64,17 @@ export function createRouter(
           if (testHandled) {
             return;
           }
+        }
+      }
+
+      if (url.pathname.startsWith('/communication/')) {
+        const handled = await handleCommunicationRoutes(
+          request,
+          response,
+        );
+
+        if (handled) {
+          return;
         }
       }
 
