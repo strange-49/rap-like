@@ -8,6 +8,7 @@ import {
 import { handleNotificationTest } from '../modules/notifications/notification.controller';
 import { handleCommunicationRoutes } from '../modules/communication/communication.routes'
 import { handleCorporateRoutes } from '../modules/corporate/corporate.routes'
+import { handleAdminRoutes } from '../modules/admin/admin.routes'
 import { handlePaymentRoutes } from '../modules/payments/payment.routes';
 import {
   handleGeocode,
@@ -90,6 +91,16 @@ export function createRouter(
         }
       }
 
+      if (url.pathname.startsWith('/admin/')) {
+        const handled = await handleAdminRoutes(
+          request,
+          response,
+        )
+
+        if (handled) {
+          return
+        }
+      }
       if (url.pathname.startsWith('/payments/')) {
         const handled = await handlePaymentRoutes(
           request,
@@ -153,6 +164,8 @@ export function createRouter(
     }
   };
 }
+
+
 
 
 

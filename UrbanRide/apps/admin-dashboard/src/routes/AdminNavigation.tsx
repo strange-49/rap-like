@@ -12,6 +12,8 @@ export function AdminNavigation() {
       {' | '}
       <NavLink to={ROUTE_PATHS.rides}>Rides</NavLink>
       {' | '}
+      <NavLink to="/payments">Payments</NavLink>
+      {' | '}
       <NavLink to={ROUTE_PATHS.clients}>Clients</NavLink>
       {' | '}
       <NavLink to={ROUTE_PATHS.settings}>Settings</NavLink>
