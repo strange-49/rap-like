@@ -128,6 +128,18 @@ export const activeRideStyles = StyleSheet.create({
     color: '#555555',
   },
 
+  mapError: {
+    position: 'absolute',
+    top: 100,
+    alignSelf: 'center',
+    maxWidth: '90%',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    elevation: 4,
+  },
+
   recenterButton: {
     position: 'absolute',
     right: 18,

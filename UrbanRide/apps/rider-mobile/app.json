@@ -7,15 +7,11 @@
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.urbanride.rider",
-      "googleServicesFile": "./google-services.json",
-      "config": {
-        "googleMaps": {
-          "apiKey": "${GOOGLE_MAPS_API_KEY}"
-        }
-      }
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      "@maplibre/maplibre-react-native"
     ]
   }
 }

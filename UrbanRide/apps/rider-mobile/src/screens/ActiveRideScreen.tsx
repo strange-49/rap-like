@@ -16,11 +16,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import MapView, {
+import {
+  Camera,
+  GeoJSONSource,
+  Layer,
+  Map as MapLibreMap,
   Marker,
-  Polyline,
-  Region,
-} from 'react-native-maps';
+  type CameraRef,
+} from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -72,9 +75,12 @@ type RouteData = {
   durationMinutes: number;
 };
 
+const MAP_STYLE_URL =
+  'https://tiles.openfreemap.org/styles/liberty';
+
 /**
  * Runtime API data can contain numeric coordinates as strings.
- * react-native-maps requires actual JavaScript numbers.
+ * Native map coordinates require actual JavaScript numbers.
  */
 function toCoordinateNumber(
   value: number | string | null | undefined,
@@ -294,8 +300,8 @@ export default function ActiveRideScreen({
     activeRide ??
     requestedRide;
 
-  const mapRef =
-    useRef<MapView | null>(null);
+  const cameraRef =
+    useRef<CameraRef | null>(null);
 
   const [currentLocation, setCurrentLocation] =
     useState<Coordinate | null>(null);
@@ -304,6 +310,12 @@ export default function ActiveRideScreen({
 
   const [routeData, setRouteData] =
     useState<RouteData | null>(null);
+
+  const [mapLoading, setMapLoading] =
+    useState(true);
+
+  const [mapError, setMapError] =
+    useState(false);
 
   const [loadingLocation, setLoadingLocation] =
     useState(true);
@@ -495,7 +507,7 @@ export default function ActiveRideScreen({
   ]);
 
   const initialRegion =
-    useMemo<Region | null>(() => {
+    useMemo<Coordinate | null>(() => {
       if (currentLocation) {
         return {
           latitude:
@@ -506,8 +518,6 @@ export default function ActiveRideScreen({
             toCoordinateNumber(
               currentLocation.longitude,
             ),
-          latitudeDelta: 0.04,
-          longitudeDelta: 0.04,
         };
       }
 
@@ -522,8 +532,6 @@ export default function ActiveRideScreen({
                 ? ride.dropLongitude
                 : ride.pickupLongitude,
             ),
-            latitudeDelta: 0.04,
-            longitudeDelta: 0.04,
           };
         } catch {
           return null;
@@ -535,6 +543,26 @@ export default function ActiveRideScreen({
       currentLocation,
       ride,
     ]);
+
+  const initialZoom = 13.1;
+
+  const routeFeature = useMemo<GeoJSON.Feature<GeoJSON.LineString> | null>(() => {
+    if (!routeData || routeData.coordinates.length < 2) {
+      return null;
+    }
+
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'LineString',
+        coordinates: routeData.coordinates.map((coordinate) => [
+          coordinate.longitude,
+          coordinate.latitude,
+        ]),
+      },
+    };
+  }, [routeData]);
 
   const pickupCoordinate =
     useMemo<Coordinate | null>(() => {
@@ -573,21 +601,14 @@ export default function ActiveRideScreen({
       return;
     }
 
-    mapRef.current?.animateToRegion(
-      {
-        latitude:
-          toCoordinateNumber(
-            currentLocation.latitude,
-          ),
-        longitude:
-          toCoordinateNumber(
-            currentLocation.longitude,
-          ),
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      },
-      500,
-    );
+    cameraRef.current?.flyTo({
+      center: [
+        toCoordinateNumber(currentLocation.longitude),
+        toCoordinateNumber(currentLocation.latitude),
+      ],
+      zoom: 14.5,
+      duration: 500,
+    });
   };
 
   const handleAccept = async () => {
@@ -754,32 +775,39 @@ export default function ActiveRideScreen({
     <View style={styles.container}>
       <View style={styles.mapContainer}>
         {initialRegion ? (
-          <MapView
-            ref={mapRef}
+          <MapLibreMap
             style={styles.map}
-            initialRegion={
-              initialRegion
-            }
-            showsUserLocation={false}
-            showsMyLocationButton={false}
-            showsCompass
-            rotateEnabled
-            zoomEnabled
+            mapStyle={MAP_STYLE_URL}
+            androidView="texture"
+            compass
+            compassPosition={{ top: 150, right: 12 }}
+            logoPosition={{ top: 104, left: 12 }}
+            attributionPosition={{ top: 104, right: 12 }}
+            onDidFinishLoadingMap={() => {
+              setMapLoading(false);
+              setMapError(false);
+            }}
+            onDidFailLoadingMap={() => {
+              setMapLoading(false);
+              setMapError(true);
+            }}
           >
+            <Camera
+              ref={cameraRef}
+              initialViewState={{
+                center: [initialRegion.longitude, initialRegion.latitude],
+                zoom: initialZoom,
+              }}
+            />
+
             {currentLocation && (
               <Marker
-                coordinate={{
-                  latitude:
-                    toCoordinateNumber(
-                      currentLocation.latitude,
-                    ),
-                  longitude:
-                    toCoordinateNumber(
-                      currentLocation.longitude,
-                    ),
-                }}
-                title="You"
-                description="Current rider location"
+                id="rider-current-location"
+                lngLat={[
+                  toCoordinateNumber(currentLocation.longitude),
+                  toCoordinateNumber(currentLocation.latitude),
+                ]}
+                anchor="center"
               >
                 <View
                   style={
@@ -797,13 +825,9 @@ export default function ActiveRideScreen({
 
             {pickupCoordinate && (
               <Marker
-                coordinate={
-                  pickupCoordinate
-                }
-                title="Pickup"
-                description={
-                  ride.pickup
-                }
+                id="ride-pickup"
+                lngLat={[pickupCoordinate.longitude, pickupCoordinate.latitude]}
+                anchor="bottom"
               >
                 <View
                   style={
@@ -823,13 +847,9 @@ export default function ActiveRideScreen({
 
             {dropCoordinate && (
               <Marker
-                coordinate={
-                  dropCoordinate
-                }
-                title="Destination"
-                description={
-                  ride.drop
-                }
+                id="ride-dropoff"
+                lngLat={[dropCoordinate.longitude, dropCoordinate.latitude]}
+                anchor="bottom"
               >
                 <View
                   style={
@@ -847,32 +867,44 @@ export default function ActiveRideScreen({
               </Marker>
             )}
 
-            {routeData && (
-              <Polyline
-                coordinates={
-                  routeData.coordinates
-                }
-                strokeWidth={5}
-                strokeColor="#111111"
-              />
+            {routeFeature && (
+              <GeoJSONSource id="ride-route" data={routeFeature}>
+                <Layer
+                  id="ride-route-line"
+                  type="line"
+                  layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                  paint={{ 'line-color': '#111111', 'line-width': 5 }}
+                />
+              </GeoJSONSource>
             )}
-          </MapView>
+          </MapLibreMap>
         ) : (
           <View
             style={styles.mapLoading}
           >
-            <ActivityIndicator
-              size="large"
-            />
+            {loadingLocation && <ActivityIndicator size="small" />}
 
             <Text
               style={
                 styles.mapLoadingText
               }
             >
-              {loadingLocation
-                ? 'Getting your location...'
-                : 'Map unavailable'}
+              {loadingLocation ? 'Getting your location...' : 'Map unavailable'}
+            </Text>
+          </View>
+        )}
+
+        {initialRegion && mapLoading && !mapError && (
+          <View style={styles.mapLoading} pointerEvents="none">
+            <ActivityIndicator size="small" />
+            <Text style={styles.mapLoadingText}>Loading map tiles…</Text>
+          </View>
+        )}
+
+        {initialRegion && mapError && (
+          <View style={styles.mapError} pointerEvents="none">
+            <Text style={styles.mapLoadingText}>
+              Map tiles could not load. Check your connection.
             </Text>
           </View>
         )}
