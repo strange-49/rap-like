@@ -1,64 +1,191 @@
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http'
 
-import { ValidationError } from '../../common/validation/validation-error';
-import type { DevelopmentAuthService } from './auth.service';
-import type { DevelopmentLoginRequest } from './auth.types';
+import { ValidationError } from '../../common/validation/validation-error'
+import type { DevelopmentAuthService } from './auth.service'
+import type {
+  DevelopmentLoginRequest,
+  SignupRequest,
+} from './auth.types'
 
 export interface AuthController {
-  login(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  currentSession(request: IncomingMessage, response: ServerResponse): void;
+  login(request: IncomingMessage, response: ServerResponse): Promise<void>
+  signup(request: IncomingMessage, response: ServerResponse): Promise<void>
+  currentSession(request: IncomingMessage, response: ServerResponse): Promise<void>
+  updatePreferences(request: IncomingMessage, response: ServerResponse): Promise<void>
 }
 
-export function createAuthController(service: DevelopmentAuthService): AuthController {
+export function createAuthController(
+  service: DevelopmentAuthService,
+): AuthController {
   return {
     async login(request, response) {
-      const input = await readLoginRequest(request);
-      const session = service.login(input);
-      if (!session) {
-        response.writeHead(401, { 'content-type': 'application/json; charset=utf-8' });
-        response.end(
-          JSON.stringify({
-            error: { code: 'INVALID_CREDENTIALS', message: 'Invalid credentials.' },
-          }),
-        );
-        return;
-      }
-      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
-      response.end(JSON.stringify(session));
-    },
-    currentSession(request, response) {
-      const token = request.headers.authorization?.replace(/^Bearer\s+/i, '') ?? '';
-      const principal = service.authenticate(token);
-      if (!principal) {
-        response.writeHead(401, { 'content-type': 'application/json; charset=utf-8' });
-        response.end(
-          JSON.stringify({
-            error: { code: 'UNAUTHENTICATED', message: 'Valid development token required.' },
-          }),
-        );
-        return;
-      }
-      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
-      response.end(JSON.stringify({ principal }));
-    },
-  };
-}
+      const input = await readLoginRequest(request)
+      const session = await service.login(input)
 
-async function readLoginRequest(request: IncomingMessage): Promise<DevelopmentLoginRequest> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) chunks.push(Buffer.from(chunk));
-  try {
-    const value: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    if (!isLoginRequest(value)) throw new ValidationError('username and password are required.');
-    return value;
-  } catch (error) {
-    if (error instanceof ValidationError) throw error;
-    throw new ValidationError('Request body must be valid JSON.');
+      if (!session) {
+        sendJson(response, 401, {
+          error: {
+            code: 'INVALID_CREDENTIALS',
+            message: 'Invalid credentials.',
+          },
+        })
+        return
+      }
+
+      sendJson(response, 200, session)
+    },
+
+    async signup(request, response) {
+      const input = await readSignupRequest(request)
+      const session = await service.signup(input)
+
+      if (!session) {
+        sendJson(response, 409, {
+          error: {
+            code: 'USERNAME_ALREADY_EXISTS',
+            message: 'Username already exists.',
+          },
+        })
+        return
+      }
+
+      sendJson(response, 201, session)
+    },
+
+    async currentSession(request, response) {
+      const token =
+        request.headers.authorization?.replace(/^Bearer\s+/i, '') ?? ''
+
+      const principal = service.authenticate(token)
+
+      if (!principal) {
+        sendJson(response, 401, {
+          error: {
+            code: 'UNAUTHENTICATED',
+            message: 'Valid authentication token required.',
+          },
+        })
+        return
+      }
+
+      const rideStartOtpEnabled = principal.role === 'CUSTOMER'
+        ? await service.getRideStartOtpPreference(principal.subjectId)
+        : null
+      sendJson(response, 200, {
+        principal,
+        preferences: rideStartOtpEnabled === null
+          ? null
+          : { rideStartOtpEnabled },
+      })
+    },
+
+    async updatePreferences(request, response) {
+      const token = request.headers.authorization?.replace(/^Bearer\s+/i, '') ?? ''
+      const principal = service.authenticate(token)
+      if (!principal) {
+        sendJson(response, 401, { error: { code: 'UNAUTHENTICATED', message: 'Valid authentication token required.' } })
+        return
+      }
+      if (principal.role !== 'CUSTOMER') {
+        sendJson(response, 403, { error: { code: 'FORBIDDEN', message: 'Customer access is required.' } })
+        return
+      }
+      const value = await readJson(request)
+      if (typeof value !== 'object' || value === null || typeof (value as Record<string, unknown>).rideStartOtpEnabled !== 'boolean') {
+        throw new ValidationError('rideStartOtpEnabled must be a boolean.')
+      }
+      const rideStartOtpEnabled = await service.setRideStartOtpPreference(
+        principal.subjectId,
+        (value as { rideStartOtpEnabled: boolean }).rideStartOtpEnabled,
+      )
+      if (rideStartOtpEnabled === null) {
+        sendJson(response, 401, { error: { code: 'UNAUTHENTICATED', message: 'Customer account is unavailable.' } })
+        return
+      }
+      sendJson(response, 200, { preferences: { rideStartOtpEnabled } })
+    },
   }
 }
 
-function isLoginRequest(value: unknown): value is DevelopmentLoginRequest {
-  if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as Record<string, unknown>;
-  return typeof candidate.username === 'string' && typeof candidate.password === 'string';
+async function readLoginRequest(
+  request: IncomingMessage,
+): Promise<DevelopmentLoginRequest> {
+  const value = await readJson(request)
+
+  if (!isLoginRequest(value)) {
+    throw new ValidationError(
+      'username and password are required.',
+    )
+  }
+
+  return value
+}
+
+async function readSignupRequest(
+  request: IncomingMessage,
+): Promise<SignupRequest> {
+  const value = await readJson(request)
+
+  if (!isSignupRequest(value)) {
+    throw new ValidationError(
+      'username and password are required.',
+    )
+  }
+
+  return value
+}
+
+async function readJson(
+  request: IncomingMessage,
+): Promise<unknown> {
+  const chunks: Buffer[] = []
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.from(chunk))
+  }
+
+  try {
+    return JSON.parse(
+      Buffer.concat(chunks).toString('utf8'),
+    )
+  } catch {
+    throw new ValidationError(
+      'Request body must be valid JSON.',
+    )
+  }
+}
+
+function isLoginRequest(
+  value: unknown,
+): value is DevelopmentLoginRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    typeof candidate.username === 'string' &&
+    candidate.username.trim().length > 0 &&
+    typeof candidate.password === 'string' &&
+    candidate.password.length > 0
+  )
+}
+
+function isSignupRequest(
+  value: unknown,
+): value is SignupRequest {
+  return isLoginRequest(value)
+}
+
+function sendJson(
+  response: ServerResponse,
+  statusCode: number,
+  body: unknown,
+): void {
+  response.writeHead(statusCode, {
+    'content-type': 'application/json; charset=utf-8',
+  })
+
+  response.end(JSON.stringify(body))
 }

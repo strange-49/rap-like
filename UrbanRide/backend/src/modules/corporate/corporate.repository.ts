@@ -13,26 +13,40 @@ export function findCorporateAccountById(id: string) {
   })
 }
 
+export function findCorporateAccountByTenantId(
+  tenantId: string,
+) {
+  return prisma.corporateAccount.findUnique({
+    where: { tenantId },
+  })
+}
+
 export function createCorporateEmployee(
   data: Prisma.CorporateEmployeeCreateInput,
 ) {
   return prisma.corporateEmployee.create({ data })
 }
 
-export function findCorporateEmployeeByEmail(email: string) {
+export function findCorporateEmployeeByEmail(
+  email: string,
+) {
   return prisma.corporateEmployee.findUnique({
     where: { email },
   })
 }
 
-export function findCorporateEmployees(corporateAccountId: string) {
+export function findCorporateEmployees(
+  corporateAccountId: string,
+) {
   return prisma.corporateEmployee.findMany({
     where: { corporateAccountId },
     orderBy: { createdAt: 'desc' },
   })
 }
 
-export function findCorporateRides(corporateAccountId: string) {
+export function findCorporateRides(
+  corporateAccountId: string,
+) {
   return prisma.ride.findMany({
     where: {
       corporateAccountId,
@@ -43,7 +57,9 @@ export function findCorporateRides(corporateAccountId: string) {
   })
 }
 
-export function getCorporateBillingSummary(corporateAccountId: string) {
+export function getCorporateBillingSummary(
+  corporateAccountId: string,
+) {
   return prisma.payment.findMany({
     where: {
       ride: {
@@ -56,7 +72,9 @@ export function getCorporateBillingSummary(corporateAccountId: string) {
   })
 }
 
-export function getCorporateReportData(corporateAccountId: string) {
+export function getCorporateReportData(
+  corporateAccountId: string,
+) {
   return prisma.ride.findMany({
     where: {
       corporateAccountId,

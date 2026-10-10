@@ -3,7 +3,184 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   geocodeAddress,
   reverseGeocode,
+  searchLocations,
 } from './geocoding.service';
+import { getDrivingRoute } from './map.service';
+import {
+  calculateEstimatedFare,
+  type RideVehicleType,
+} from '../rides/ride/ride.fare';
+
+export async function handleFareEstimate(
+  request: IncomingMessage,
+  response: ServerResponse,
+): Promise<boolean> {
+  const url = new URL(
+    request.url ?? '/',
+    `http://${request.headers.host ?? 'localhost'}`,
+  );
+
+  if (request.method !== 'GET' || url.pathname !== '/locations/fare-estimate') {
+    return false;
+  }
+
+  const pickupLatitude = Number(url.searchParams.get('pickupLatitude'));
+  const pickupLongitude = Number(url.searchParams.get('pickupLongitude'));
+  const dropLatitude = Number(url.searchParams.get('dropLatitude'));
+  const dropLongitude = Number(url.searchParams.get('dropLongitude'));
+  const vehicleType = url.searchParams.get('vehicleType');
+
+  if (
+    !Number.isFinite(pickupLatitude) ||
+    !Number.isFinite(pickupLongitude) ||
+    !Number.isFinite(dropLatitude) ||
+    !Number.isFinite(dropLongitude)
+  ) {
+    response.writeHead(400, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(
+      JSON.stringify({
+        error: {
+          code: 'INVALID_COORDINATES',
+          message: 'Valid pickup and drop coordinates are required.',
+        },
+      }),
+    );
+
+    return true;
+  }
+
+  if (
+    vehicleType !== 'bike' &&
+    vehicleType !== 'auto' &&
+    vehicleType !== 'cab'
+  ) {
+    response.writeHead(400, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(
+      JSON.stringify({
+        error: {
+          code: 'INVALID_VEHICLE_TYPE',
+          message: 'vehicleType must be bike, auto, or cab.',
+        },
+      }),
+    );
+
+    return true;
+  }
+
+  try {
+    const route = await getDrivingRoute(
+      {
+        latitude: pickupLatitude,
+        longitude: pickupLongitude,
+      },
+      {
+        latitude: dropLatitude,
+        longitude: dropLongitude,
+      },
+    );
+
+    const estimatedFare = calculateEstimatedFare(
+      route.distanceInKilometers,
+      vehicleType as RideVehicleType,
+    );
+
+    response.writeHead(200, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(
+      JSON.stringify({
+        distanceInKilometers: route.distanceInKilometers,
+        durationInMinutes: route.durationInMinutes,
+        estimatedFare,
+        vehicleType,
+      }),
+    );
+  } catch (error) {
+    console.error(error);
+
+    response.writeHead(502, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(
+      JSON.stringify({
+        error: {
+          code: 'FARE_ESTIMATE_FAILED',
+          message: 'Unable to calculate the fare estimate.',
+        },
+      }),
+    );
+  }
+
+  return true;
+}
+
+export async function handleLocationSearch(
+  request: IncomingMessage,
+  response: ServerResponse,
+): Promise<boolean> {
+  const url = new URL(
+    request.url ?? '/',
+    `http://${request.headers.host ?? 'localhost'}`,
+  );
+
+  if (request.method !== 'GET' || url.pathname !== '/locations/search') {
+    return false;
+  }
+
+  const query = url.searchParams.get('q');
+
+  if (!query?.trim()) {
+    response.writeHead(400, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(
+      JSON.stringify({
+        error: {
+          code: 'QUERY_REQUIRED',
+          message: 'Search query is required.',
+        },
+      }),
+    );
+
+    return true;
+  }
+
+  try {
+    const results = await searchLocations(query.trim());
+
+    response.writeHead(200, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(JSON.stringify(results));
+  } catch (error) {
+    console.error(error);
+
+    response.writeHead(502, {
+      'content-type': 'application/json; charset=utf-8',
+    });
+
+    response.end(
+      JSON.stringify({
+        error: {
+          code: 'LOCATION_SEARCH_FAILED',
+          message: 'Unable to search locations.',
+        },
+      }),
+    );
+  }
+
+  return true;
+}
 
 export async function handleGeocode(
   request: IncomingMessage,

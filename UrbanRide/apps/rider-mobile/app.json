@@ -7,7 +7,12 @@
     "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.urbanride.rider",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "${GOOGLE_MAPS_API_KEY}"
+        }
+      }
     },
     "plugins": [
       "expo-notifications"

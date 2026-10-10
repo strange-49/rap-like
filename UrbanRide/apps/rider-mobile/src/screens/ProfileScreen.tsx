@@ -1,5 +1,12 @@
-﻿import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+﻿
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 type RootStackParamList = {
   Settings: undefined;
@@ -9,7 +16,12 @@ type Props = NativeStackScreenProps<RootStackParamList>;
 
 export default function ProfileScreen({ navigation }: Props) {
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={true}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Rider Profile</Text>
 
       <View style={styles.profileCard}>
@@ -43,30 +55,37 @@ export default function ProfileScreen({ navigation }: Props) {
       <Pressable
         style={styles.settingsButton}
         onPress={() => navigation.navigate('Settings')}
+        accessibilityRole="button"
       >
         <Text style={styles.settingsButtonText}>Settings</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 24,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F5F5F5',
+  },
+  container: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    marginTop: 24,
+    color: '#111111',
+    marginTop: 8,
     marginBottom: 24,
   },
   profileCard: {
     alignItems: 'center',
     padding: 24,
     borderRadius: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     marginBottom: 16,
   },
   avatar: {
@@ -79,40 +98,45 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatarText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 28,
     fontWeight: '700',
   },
   name: {
     fontSize: 22,
     fontWeight: '700',
+    color: '#111111',
   },
   role: {
     fontSize: 14,
+    color: '#666666',
     marginTop: 4,
   },
   infoCard: {
     padding: 20,
     borderRadius: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
+    color: '#111111',
     marginBottom: 16,
   },
   row: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
+    borderBottomColor: '#EEEEEE',
   },
   label: {
     fontSize: 13,
+    color: '#666666',
     marginBottom: 4,
   },
   value: {
     fontSize: 16,
     fontWeight: '500',
+    color: '#111111',
   },
   settingsButton: {
     marginTop: 16,
@@ -121,7 +145,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111111',
   },
   settingsButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

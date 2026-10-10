@@ -1,12 +1,46 @@
-const BASE_FARE = 30;
-const PER_KILOMETER_RATE = 15;
+export type RideVehicleType = 'bike' | 'auto' | 'cab'
 
-export function calculateEstimatedFare(distanceInKilometers: number): number {
-  if (!Number.isFinite(distanceInKilometers) || distanceInKilometers < 0) {
-    throw new Error('Distance must be a non-negative number.');
+const FARE_RULES: Record<
+  RideVehicleType,
+  {
+    baseFare: number
+    perKilometer: number
+  }
+> = {
+  bike: {
+    baseFare: 30,
+    perKilometer: 10,
+  },
+  auto: {
+    baseFare: 40,
+    perKilometer: 15,
+  },
+  cab: {
+    baseFare: 60,
+    perKilometer: 20,
+  },
+}
+
+export function calculateEstimatedFare(
+  distanceInKilometers: number,
+  vehicleType: RideVehicleType,
+): number {
+  if (
+    !Number.isFinite(distanceInKilometers) ||
+    distanceInKilometers < 0
+  ) {
+    throw new Error('Distance must be a non-negative number.')
   }
 
-  const fare = BASE_FARE + distanceInKilometers * PER_KILOMETER_RATE;
+  const rule = FARE_RULES[vehicleType]
 
-  return Math.round(fare * 100) / 100;
+  if (!rule) {
+    throw new Error('Invalid vehicle type.')
+  }
+
+  const fare =
+    rule.baseFare +
+    distanceInKilometers * rule.perKilometer
+
+  return Math.round(fare * 100) / 100
 }

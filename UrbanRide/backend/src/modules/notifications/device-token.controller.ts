@@ -1,5 +1,10 @@
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type {
+  IncomingMessage,
+  ServerResponse,
+} from 'node:http';
 
+import type { AuthContext } from '../../common/auth/auth-context';
+import { AppError } from '../../common/errors/app-error';
 import {
   getRiderDeviceTokens,
   registerDeviceToken,
@@ -9,6 +14,7 @@ import {
 export async function handleDeviceTokenRoutes(
   request: IncomingMessage,
   response: ServerResponse,
+  authContext: AuthContext | null = null,
 ): Promise<boolean> {
   const url = new URL(
     request.url ?? '/',
@@ -19,30 +25,23 @@ export async function handleDeviceTokenRoutes(
     request.method === 'POST' &&
     url.pathname === '/notifications/device-token'
   ) {
-    const riderId = url.searchParams.get('riderId');
+    requireRiderAuth(authContext);
+
     const token = url.searchParams.get('token');
-    const platform = url.searchParams.get('platform') ?? undefined;
+    const platform =
+      url.searchParams.get('platform') ?? undefined;
 
-    if (!riderId?.trim() || !token?.trim()) {
-      response.writeHead(400, {
-        'content-type': 'application/json; charset=utf-8',
-      });
-
-      response.end(
-        JSON.stringify({
-          error: {
-            code: 'DEVICE_TOKEN_FIELDS_REQUIRED',
-            message: 'Rider ID and device token are required.',
-          },
-        }),
+    if (!token?.trim()) {
+      throw new AppError(
+        'Device token is required.',
+        400,
+        'TOKEN_REQUIRED',
       );
-
-      return true;
     }
 
     const deviceToken = await registerDeviceToken({
-      riderId,
-      token,
+      riderId: authContext.subjectId,
+      token: token.trim(),
       platform,
     });
 
@@ -59,26 +58,11 @@ export async function handleDeviceTokenRoutes(
     request.method === 'GET' &&
     url.pathname === '/notifications/device-tokens'
   ) {
-    const riderId = url.searchParams.get('riderId');
+    requireRiderAuth(authContext);
 
-    if (!riderId?.trim()) {
-      response.writeHead(400, {
-        'content-type': 'application/json; charset=utf-8',
-      });
-
-      response.end(
-        JSON.stringify({
-          error: {
-            code: 'RIDER_ID_REQUIRED',
-            message: 'Rider ID is required.',
-          },
-        }),
-      );
-
-      return true;
-    }
-
-    const deviceTokens = await getRiderDeviceTokens(riderId);
+    const deviceTokens = await getRiderDeviceTokens(
+      authContext.subjectId,
+    );
 
     response.writeHead(200, {
       'content-type': 'application/json; charset=utf-8',
@@ -93,26 +77,19 @@ export async function handleDeviceTokenRoutes(
     request.method === 'DELETE' &&
     url.pathname === '/notifications/device-token'
   ) {
+    requireRiderAuth(authContext);
+
     const token = url.searchParams.get('token');
 
     if (!token?.trim()) {
-      response.writeHead(400, {
-        'content-type': 'application/json; charset=utf-8',
-      });
-
-      response.end(
-        JSON.stringify({
-          error: {
-            code: 'TOKEN_REQUIRED',
-            message: 'Device token is required.',
-          },
-        }),
+      throw new AppError(
+        'Device token is required.',
+        400,
+        'TOKEN_REQUIRED',
       );
-
-      return true;
     }
 
-    await removeDeviceToken(token);
+    await removeDeviceToken(token.trim());
 
     response.writeHead(204);
     response.end();
@@ -121,4 +98,24 @@ export async function handleDeviceTokenRoutes(
   }
 
   return false;
+}
+
+function requireRiderAuth(
+  authContext: AuthContext | null,
+): asserts authContext is AuthContext {
+  if (!authContext) {
+    throw new AppError(
+      'Authentication is required.',
+      401,
+      'AUTHENTICATION_REQUIRED',
+    );
+  }
+
+  if (authContext.role !== 'RIDER') {
+    throw new AppError(
+      'Only riders can manage rider device tokens.',
+      403,
+      'RIDER_ROLE_REQUIRED',
+    );
+  }
 }

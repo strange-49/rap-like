@@ -3,7 +3,7 @@ import crypto from 'node:crypto'
 import { AppError } from '../../common/errors/app-error'
 import {
   findPaymentByRazorpayOrderId,
-  updatePayment,
+  updatePaymentUnlessCaptured,
 } from './payment.repository'
 
 function getWebhookSecret() {
@@ -81,23 +81,34 @@ export async function processPaymentWebhook(
     }
   }
 
+  if (
+    paymentEntity.amount !== Math.round(Number(payment.amount) * 100) ||
+    paymentEntity.currency !== 'INR'
+  ) {
+    throw new AppError('Razorpay webhook payment does not match the stored order amount or currency.', 400, 'PAYMENT_MISMATCH')
+  }
+
+  if (payment.status === 'CAPTURED') {
+    return { processed: true, event: event.event, paymentId: payment.id }
+  }
+
   switch (event.event) {
     case 'payment.authorized':
-      await updatePayment(payment.id, {
+      await updatePaymentUnlessCaptured(payment.id, {
         status: 'AUTHORIZED',
         razorpayPaymentId,
       })
       break
 
     case 'payment.captured':
-      await updatePayment(payment.id, {
+      await updatePaymentUnlessCaptured(payment.id, {
         status: 'CAPTURED',
         razorpayPaymentId,
       })
       break
 
     case 'payment.failed':
-      await updatePayment(payment.id, {
+      await updatePaymentUnlessCaptured(payment.id, {
         status: 'FAILED',
         razorpayPaymentId,
       })

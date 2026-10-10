@@ -17,7 +17,9 @@ export function registerRiderDeviceToken(
   });
 }
 
-export function findRiderDeviceTokens(riderId: string) {
+export function findRiderDeviceTokens(
+  riderId: string,
+) {
   return prisma.riderDeviceToken.findMany({
     where: {
       riderId,
@@ -28,7 +30,17 @@ export function findRiderDeviceTokens(riderId: string) {
   });
 }
 
-export function deleteRiderDeviceToken(token: string) {
+export function findAllRiderDeviceTokens() {
+  return prisma.riderDeviceToken.findMany({
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+}
+
+export function deleteRiderDeviceToken(
+  token: string,
+) {
   return prisma.riderDeviceToken.delete({
     where: {
       token,

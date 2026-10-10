@@ -1,14 +1,38 @@
 import type { RideStatus } from '../../../generated/prisma/client';
-
 import { AppError } from '../../../common/errors/app-error';
 
-const allowedTransitions: Record<RideStatus, readonly RideStatus[]> = {
-  REQUESTED: ['SEARCHING', 'CANCELLED'],
-  SEARCHING: ['ASSIGNED', 'CANCELLED'],
-  ASSIGNED: ['DRIVER_ARRIVING', 'CANCELLED'],
-  DRIVER_ARRIVING: ['IN_PROGRESS', 'CANCELLED'],
-  IN_PROGRESS: ['COMPLETED'],
+const allowedTransitions: Record<
+  RideStatus,
+  readonly RideStatus[]
+> = {
+  REQUESTED: [
+    'SEARCHING',
+    'ASSIGNED',
+    'CANCELLED',
+  ],
+
+  SEARCHING: [
+    'ASSIGNED',
+    'CANCELLED',
+  ],
+
+  ASSIGNED: [
+    'DRIVER_ARRIVING',
+    'CANCELLED',
+  ],
+
+  DRIVER_ARRIVING: [
+    'IN_PROGRESS',
+    'CANCELLED',
+  ],
+
+  IN_PROGRESS: [
+    'COMPLETED',
+    'CANCELLED',
+  ],
+
   COMPLETED: [],
+
   CANCELLED: [],
 };
 
@@ -16,7 +40,9 @@ export function canTransition(
   currentStatus: RideStatus,
   nextStatus: RideStatus,
 ): boolean {
-  return allowedTransitions[currentStatus].includes(nextStatus);
+  return allowedTransitions[currentStatus].includes(
+    nextStatus,
+  );
 }
 
 export function assertTransition(

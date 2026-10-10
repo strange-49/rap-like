@@ -1,0 +1,150 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f3f6fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --page-bg: #f3f6fb;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --text: #172033;
+  --text-muted: #596579;
+  --border: #d5ddea;
+  --control-bg: #ffffff;
+  --accent: #2563eb;
+  --accent-text: #ffffff;
+  --error: #b42318;
+  --shadow: 0 8px 24px rgb(28 44 72 / 8%);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e5eaf3;
+  background: #111827;
+  --page-bg: #111827;
+  --surface: #172235;
+  --surface-raised: #202e43;
+  --text: #e5eaf3;
+  --text-muted: #aeb9ca;
+  --border: #3a4960;
+  --control-bg: #111b2a;
+  --accent: #78a7ff;
+  --accent-text: #101827;
+  --error: #ff938a;
+  --shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { min-height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--text);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+button, input, select, textarea { font: inherit; }
+
+button, input, select, textarea, section, article, dialog, [role="dialog"] {
+  color: var(--text);
+}
+
+button, input, select, textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--control-bg);
+}
+
+button {
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { cursor: not-allowed; opacity: .62; }
+input, select, textarea { padding: 9px 10px; }
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+input[type="checkbox"] { accent-color: var(--accent); }
+
+a { color: var(--accent); }
+p { color: var(--text); }
+small, .profile-id { color: var(--text-muted); overflow-wrap: anywhere; }
+
+.customer-app { min-height: 100vh; background: var(--page-bg); color: var(--text); }
+.customer-header {
+  min-height: 68px;
+  padding: 12px clamp(16px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1000;
+}
+.customer-brand { margin: 0; font-size: 1.35rem; }
+.customer-header-actions { display: flex; align-items: center; gap: 12px; }
+.customer-header-link {
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 13px;
+  cursor: pointer;
+  background: var(--surface);
+  list-style: none;
+}
+.customer-header-link:hover { border-color: var(--accent); }
+.profile-menu { position: relative; }
+.profile-menu summary::-webkit-details-marker { display: none; }
+.profile-menu-content {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(280px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+}
+.customer-main { width: min(1120px, 100%); margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 48px; }
+
+section, article, dialog, [role="dialog"] {
+  background-color: var(--surface);
+  border-color: var(--border);
+}
+
+.settings-page { display: grid; gap: 16px; }
+.settings-page > h2 { margin: 0 0 4px; }
+.settings-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.settings-card h3 { margin: 0 0 16px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.setting-row p { color: var(--text-muted); margin: 6px 0 0; }
+.toggle-control { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.toggle-control input { width: 20px; height: 20px; cursor: pointer; }
+.form-error { color: var(--error); }
+
+.leaflet-control, .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  color: var(--text);
+  background: var(--surface);
+}
+.leaflet-bar a, .leaflet-bar a:hover { color: var(--text); background: var(--surface); border-color: var(--border); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--surface) 88%, transparent); color: var(--text-muted); }
+
+@media (max-width: 600px) {
+  .customer-header { padding-inline: 14px; }
+  .customer-header-actions { gap: 7px; }
+  .customer-header-link { padding: 7px 9px; }
+  .setting-row { align-items: flex-start; flex-direction: column; gap: 14px; }
+}

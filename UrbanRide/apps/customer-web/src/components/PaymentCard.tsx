@@ -1,16 +1,59 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   createPaymentOrder,
   verifyPayment,
+  getRidePaymentStatus,
+  type PaymentMode,
 } from '../services/payments'
+import type { CreatedRide } from '../services/rides'
 
-const TEST_RIDE_ID = 'cmu2xh5vx0000uwi997uhkq56'
+type PaymentCardProps = {
+  ride: CreatedRide | null
+  onPaymentUpdate?: () => void
+}
 
-export function PaymentCard() {
+export function PaymentCard({ ride, onPaymentUpdate }: PaymentCardProps) {
+  const [paymentMode, setPaymentMode] =
+    useState<PaymentMode>('POST_RIDE')
   const [message, setMessage] = useState('')
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setPaymentStatus(null)
+    if (ride) {
+      void getRidePaymentStatus(ride.id).then((payment) => {
+        if (active) setPaymentStatus(payment?.status ?? null)
+      }).catch(() => {
+        if (active) setPaymentStatus(null)
+      })
+    }
+    return () => { active = false }
+  }, [ride?.id])
+
+  useEffect(() => {
+    if (!ride || !['PENDING', 'AUTHORIZED'].includes(paymentStatus ?? '')) return
+    const timer = setInterval(() => {
+      void getRidePaymentStatus(ride.id).then((payment) => {
+        if (payment) {
+          setPaymentStatus(payment.status)
+          if (payment.status === 'CAPTURED') onPaymentUpdate?.()
+        }
+      }).catch(() => undefined)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [ride?.id, paymentStatus])
 
   async function handlePayment() {
+    if (!ride) {
+      setMessage('Please book a ride first.')
+      return
+    }
+
+    if (busy || paymentStatus === 'CAPTURED') return
     try {
+      setBusy(true)
       setMessage('Creating payment order...')
 
       const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID
@@ -27,16 +70,23 @@ export function PaymentCard() {
         )
       }
 
-      const payment = await createPaymentOrder(TEST_RIDE_ID)
+      const payment = await createPaymentOrder(
+        ride.id,
+        paymentMode,
+      )
+      setPaymentStatus(payment.status)
 
       setMessage('Opening Razorpay Checkout...')
 
       const checkout = new window.Razorpay({
         key: razorpayKeyId,
-        amount: Math.round(payment.amount * 100),
+        amount: Math.round(Number(payment.amount) * 100),
         currency: 'INR',
         name: 'UrbanRide',
-        description: 'UrbanRide Test Payment',
+        description:
+          paymentMode === 'ADVANCE'
+            ? 'UrbanRide Advance Payment'
+            : 'UrbanRide Post-Ride Payment',
         order_id: payment.razorpayOrderId,
 
         handler: async (response) => {
@@ -49,9 +99,12 @@ export function PaymentCard() {
               response.razorpay_signature,
             )
 
-            setMessage(
-              `Payment ${verifiedPayment.status.toLowerCase()} successfully.`,
-            )
+            const current = await getRidePaymentStatus(ride.id)
+            setPaymentStatus(current?.status ?? verifiedPayment.status)
+            setMessage(verifiedPayment.status === 'CAPTURED'
+              ? 'Payment captured and verified.'
+              : 'Payment authorized; waiting for capture confirmation.')
+            onPaymentUpdate?.()
           } catch (error) {
             setMessage(
               error instanceof Error
@@ -69,6 +122,8 @@ export function PaymentCard() {
           ? error.message
           : 'Payment failed.',
       )
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -76,13 +131,40 @@ export function PaymentCard() {
     <section>
       <h3>Payment</h3>
 
-      <p>Test ride fare: ₹123</p>
+      <p>
+        Ride fare:{' '}
+        {(ride?.finalFare ?? ride?.estimatedFare) != null
+          ? `Rs. ${(ride?.finalFare ?? ride?.estimatedFare)?.toFixed(2)}`
+          : 'Book a ride first'}
+      </p>
+
+      {paymentStatus && <p>Payment status: {paymentStatus}</p>}
+
+      {ride && (
+        <label>
+          Payment option
+          <select
+            value={paymentMode}
+            onChange={(event) =>
+              setPaymentMode(event.target.value as PaymentMode)
+            }
+          >
+            <option value="POST_RIDE">
+              Pay after ride
+            </option>
+            <option value="ADVANCE">
+              Pay in advance
+            </option>
+          </select>
+        </label>
+      )}
 
       <button
         type="button"
         onClick={handlePayment}
+        disabled={!ride || busy || ['CAPTURED', 'PENDING', 'AUTHORIZED'].includes(paymentStatus ?? '') || (paymentMode === 'POST_RIDE' && ride.status !== 'COMPLETED')}
       >
-        Pay ₹123
+        {busy ? 'Processing...' : paymentStatus === 'CAPTURED' ? 'Paid' : 'Pay Now'}
       </button>
 
       {message && <p>{message}</p>}

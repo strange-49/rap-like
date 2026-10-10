@@ -16,7 +16,7 @@ export default function TabNavigator() {
   return (
     <Tab.Navigator>
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="History" component={RideHistoryScreen} />
+      <Tab.Screen name="History" component={RideHistoryScreen} options={{ title: 'Completed' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

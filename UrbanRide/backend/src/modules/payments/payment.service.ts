@@ -3,13 +3,20 @@ import crypto from 'node:crypto';
 import Razorpay from 'razorpay';
 
 import { AppError } from '../../common/errors/app-error';
-import { findRideById } from '../rides/ride/ride.repository';
+import {
+  findCustomerOutstandingPayment,
+  findRideById,
+} from '../rides/ride/ride.repository';
 import {
   createPayment,
   findPaymentByRideId,
-  findPaymentById,
+  findPaymentByRideForCustomer,
+  findCustomerPaymentById,
   updatePayment,
+  updatePaymentUnlessCaptured,
 } from './payment.repository';
+
+export type PaymentMode = 'ADVANCE' | 'POST_RIDE';
 
 function getRazorpayClient() {
   const keyId = process.env.RAZORPAY_KEY_ID;
@@ -51,7 +58,11 @@ function getRazorpaySecret() {
   return keySecret;
 }
 
-export async function createRazorpayOrder(rideId: string) {
+export async function createRazorpayOrder(
+  rideId: string,
+  mode: PaymentMode,
+  customerId: string,
+) {
   if (!rideId.trim()) {
     throw new AppError(
       'Ride ID is required.',
@@ -69,12 +80,29 @@ export async function createRazorpayOrder(rideId: string) {
       'RIDE_NOT_FOUND',
     );
   }
+  if (ride.customerId !== customerId) {
+    throw new AppError('You can only pay for your own ride.', 403, 'FORBIDDEN');
+  }
 
-  if (ride.status !== 'COMPLETED') {
+  if (
+    mode === 'POST_RIDE' &&
+    ride.status !== 'COMPLETED'
+  ) {
     throw new AppError(
-      'Payment can only be created for a completed ride.',
+      'Post-ride payment can only be created after the ride is completed.',
       400,
       'RIDE_NOT_COMPLETED',
+    );
+  }
+
+  if (
+    mode === 'ADVANCE' &&
+    ride.status === 'COMPLETED'
+  ) {
+    throw new AppError(
+      'Advance payment is only available before the ride is completed.',
+      400,
+      'RIDE_ALREADY_COMPLETED',
     );
   }
 
@@ -99,13 +127,18 @@ export async function createRazorpayOrder(rideId: string) {
   }
 
   const existingPayment = await findPaymentByRideId(rideId);
-
-  if (existingPayment) {
+  if (existingPayment?.status === 'CAPTURED') {
     throw new AppError(
-      'A payment already exists for this ride.',
+      'This ride is already paid.',
       409,
-      'PAYMENT_ALREADY_EXISTS',
+      'PAYMENT_ALREADY_CAPTURED',
     );
+  }
+  if (existingPayment && existingPayment.status !== 'FAILED') {
+    if (existingPayment.mode !== mode) {
+      throw new AppError('A payment attempt is already active in another mode.', 409, 'PAYMENT_ATTEMPT_ACTIVE');
+    }
+    return existingPayment;
   }
 
   const razorpay = getRazorpayClient();
@@ -116,18 +149,31 @@ export async function createRazorpayOrder(rideId: string) {
     receipt: rideId,
   });
 
-  return createPayment({
+  const paymentData = {
     ride: { connect: { id: rideId } },
     amount: amountInRupees,
+    mode,
     status: 'PENDING',
     razorpayOrderId: order.id,
-  });
+  } as const;
+
+  return existingPayment
+    ? updatePayment(existingPayment.id, {
+        amount: amountInRupees,
+        mode,
+        status: 'PENDING',
+        razorpayOrderId: order.id,
+        razorpayPaymentId: null,
+        razorpaySignature: null,
+      })
+    : createPayment(paymentData);
 }
 
 export async function verifyPaymentSignature(
   paymentId: string,
   razorpayPaymentId: string,
   razorpaySignature: string,
+  customerId: string,
 ) {
   if (!paymentId.trim()) {
     throw new AppError(
@@ -153,7 +199,7 @@ export async function verifyPaymentSignature(
     );
   }
 
-  const payment = await findPaymentById(paymentId);
+  const payment = await findCustomerPaymentById(paymentId, customerId);
 
   if (!payment) {
     throw new AppError(
@@ -172,6 +218,7 @@ export async function verifyPaymentSignature(
   }
 
   if (payment.status === 'CAPTURED') {
+    if (payment.razorpayPaymentId === razorpayPaymentId) return payment;
     throw new AppError(
       'Payment has already been captured.',
       409,
@@ -201,9 +248,51 @@ export async function verifyPaymentSignature(
     );
   }
 
-  return updatePayment(payment.id, {
-    status: 'CAPTURED',
+  const razorpay = getRazorpayClient();
+  const providerPayment = await razorpay.payments.fetch(razorpayPaymentId);
+  if (
+    providerPayment.order_id !== payment.razorpayOrderId ||
+    providerPayment.amount !== Math.round(Number(payment.amount) * 100) ||
+    providerPayment.currency !== 'INR'
+  ) {
+    throw new AppError('Razorpay payment does not match the ride order.', 400, 'PAYMENT_MISMATCH');
+  }
+
+  const nextStatus = providerPayment.status === 'captured'
+    ? 'CAPTURED'
+    : providerPayment.status === 'authorized'
+      ? 'AUTHORIZED'
+      : providerPayment.status === 'failed'
+        ? 'FAILED'
+        : 'PENDING';
+
+  return (await updatePaymentUnlessCaptured(payment.id, {
+    status: nextStatus,
     razorpayPaymentId,
     razorpaySignature,
-  });
+  }))!;
+}
+
+export async function getCustomerPaymentStatus(
+  rideId: string,
+  customerId: string,
+) {
+  const payment = await findPaymentByRideForCustomer(rideId, customerId);
+  return payment && {
+    id: payment.id,
+    rideId: payment.rideId,
+    amount: payment.amount,
+    mode: payment.mode,
+    status: payment.status,
+  };
+}
+
+export async function getCustomerOutstandingPayment(customerId: string) {
+  const ride = await findCustomerOutstandingPayment(customerId);
+  if (!ride) return null;
+  return {
+    rideId: ride.id,
+    paymentStatus: ride.payment?.status ?? 'UNPAID',
+    amount: ride.payment?.amount ?? null,
+  };
 }

@@ -1,10 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
+import type { AuthContext } from '../../common/auth/auth-context'
 import { handleCorporateController } from './corporate.controller'
 
 export async function handleCorporateRoutes(
   request: IncomingMessage,
   response: ServerResponse,
+  authContext: AuthContext | null,
 ): Promise<boolean> {
   const url = new URL(
     request.url ?? '/',
@@ -15,5 +17,10 @@ export async function handleCorporateRoutes(
     return false
   }
 
-  return handleCorporateController(request, response, url.pathname)
+  return handleCorporateController(
+    request,
+    response,
+    url.pathname,
+    authContext,
+  )
 }

@@ -1,2 +1,11 @@
 
 node_modules/
+
+# Local package and build caches
+.pnpm-store/
+v/
+UrbanRide/apps/rider-mobile/.gradle-user-home/
+
+# Temporary local test scripts
+UrbanRide/backend/.check-rider-token.ts
+UrbanRide/backend/.test-rider-push.ts

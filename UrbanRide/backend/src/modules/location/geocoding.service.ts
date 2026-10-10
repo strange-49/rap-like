@@ -4,7 +4,49 @@ export interface GeocodingResult {
   displayName: string;
 }
 
+export interface LocationSearchResult {
+  latitude: number;
+  longitude: number;
+  displayName: string;
+}
+
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org';
+
+export async function searchLocations(
+  query: string,
+): Promise<LocationSearchResult[]> {
+  const url = new URL(`${NOMINATIM_BASE_URL}/search`);
+
+  url.searchParams.set('q', query);
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('limit', '5');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('countrycodes', 'in');
+
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'UrbanRide/0.1.0',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Location search service failed with status ${response.status}.`,
+    );
+  }
+
+  const data = (await response.json()) as Array<{
+    lat: string;
+    lon: string;
+    display_name: string;
+  }>;
+
+  return data.map((result) => ({
+    latitude: Number(result.lat),
+    longitude: Number(result.lon),
+    displayName: result.display_name,
+  }));
+}
 
 export async function geocodeAddress(
   address: string,

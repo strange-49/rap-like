@@ -8,6 +8,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PlatformRole {
+  CUSTOMER
+  RIDER
+  CLIENT_ADMIN
+  ADMIN
+}
+
 enum RideStatus {
   REQUESTED
   SEARCHING
@@ -24,12 +31,29 @@ enum CancellationReason {
   SYSTEM
 }
 
+model User {
+  id           String       @id @default(cuid())
+  username     String       @unique
+  passwordHash String
+  role         PlatformRole
+  tenantId     String?
+  rideStartOtpEnabled Boolean @default(false)
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([role])
+  @@index([tenantId])
+  @@index([active])
+}
+
 model Ride {
   id         String     @id @default(cuid())
   customerId String
   corporateAccountId String?
   riderId    String?
   status     RideStatus @default(REQUESTED)
+  startOtpRequired Boolean @default(true)
 
   pickupAddress   String
   pickupLatitude  Decimal @db.Decimal(10, 7)
@@ -49,18 +73,47 @@ model Ride {
   requestedAt DateTime  @default(now())
   assignedAt  DateTime?
   startedAt   DateTime?
+  riderCompletedAt DateTime?
+  customerCompletedAt DateTime?
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   corporateAccount CorporateAccount? @relation(fields: [corporateAccountId], references: [id], onDelete: SetNull)
   payment Payment?
+  rating  RideRating?
+  startOtp RideStartOtp?
 
   @@index([customerId])
   @@index([riderId])
   @@index([corporateAccountId])
   @@index([status])
   @@index([requestedAt])
+}
+
+model RideRating {
+  id         String   @id @default(cuid())
+  rideId     String   @unique
+  customerId String
+  riderId    String
+  score      Int
+  feedback   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([riderId])
+}
+
+model RideStartOtp {
+  rideId    String   @id
+  secretHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
 }
 
 model RiderDeviceToken {
@@ -72,7 +125,11 @@ model RiderDeviceToken {
   updatedAt DateTime @updatedAt
 
   @@index([riderId])
+}
 
+enum PaymentMode {
+  ADVANCE
+  POST_RIDE
 }
 
 enum PaymentStatus {
@@ -87,6 +144,7 @@ model Payment {
   id     String        @id @default(cuid())
   rideId String        @unique
   amount Decimal       @db.Decimal(10, 2)
+  mode   PaymentMode  @default(POST_RIDE)
   status PaymentStatus @default(PENDING)
 
   razorpayOrderId   String? @unique
@@ -96,7 +154,7 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-    ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([createdAt])
@@ -104,6 +162,7 @@ model Payment {
 
 model CorporateAccount {
   id           String             @id @default(cuid())
+  tenantId     String?            @unique
   name         String
   billingEmail String?
   createdAt    DateTime           @default(now())
@@ -114,7 +173,6 @@ model CorporateAccount {
 
   @@index([name])
 }
-
 model CorporateEmployee {
   id                String          @id @default(cuid())
   corporateAccountId String
@@ -130,13 +188,3 @@ model CorporateEmployee {
   @@index([corporateAccountId])
   @@index([active])
 }
-
-
-
-
-
-
-
-
-
-

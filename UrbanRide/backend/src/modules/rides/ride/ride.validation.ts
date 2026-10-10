@@ -1,7 +1,8 @@
 import { AppError } from '../../../common/errors/app-error';
 
+export type RideVehicleType = 'bike' | 'auto' | 'cab';
+
 export interface ValidatedRequestRideInput {
-  customerId: string;
   corporateAccountId?: string;
   pickupAddress: string;
   pickupLatitude: number;
@@ -9,6 +10,7 @@ export interface ValidatedRequestRideInput {
   dropAddress: string;
   dropLatitude: number;
   dropLongitude: number;
+  rideType: RideVehicleType;
   estimatedDistance?: number;
   estimatedFare?: number;
 }
@@ -26,37 +28,52 @@ export function validateRequestRideInput(
     );
   }
 
-  const customerId = requireString(input.customerId, 'customerId');
   const corporateAccountId =
     input.corporateAccountId === undefined
       ? undefined
       : requireString(input.corporateAccountId, 'corporateAccountId');
 
   const pickupAddress = requireString(input.pickupAddress, 'pickupAddress');
+
   const pickupLatitude = requireNumber(
     input.pickupLatitude,
     'pickupLatitude',
   );
+
   const pickupLongitude = requireNumber(
     input.pickupLongitude,
     'pickupLongitude',
   );
+
   const dropAddress = requireString(input.dropAddress, 'dropAddress');
-  const dropLatitude = requireNumber(input.dropLatitude, 'dropLatitude');
+
+  const dropLatitude = requireNumber(
+    input.dropLatitude,
+    'dropLatitude',
+  );
+
   const dropLongitude = requireNumber(
     input.dropLongitude,
     'dropLongitude',
   );
 
+  const rideType = requireRideType(input.rideType);
+
   const estimatedDistance =
     input.estimatedDistance === undefined
       ? undefined
-      : requireNumber(input.estimatedDistance, 'estimatedDistance');
+      : requireNumber(
+          input.estimatedDistance,
+          'estimatedDistance',
+        );
 
   const estimatedFare =
     input.estimatedFare === undefined
       ? undefined
-      : requireNumber(input.estimatedFare, 'estimatedFare');
+      : requireNumber(
+          input.estimatedFare,
+          'estimatedFare',
+        );
 
   validateLatitude(pickupLatitude, 'pickupLatitude');
   validateLongitude(pickupLongitude, 'pickupLongitude');
@@ -80,7 +97,6 @@ export function validateRequestRideInput(
   }
 
   return {
-    customerId,
     corporateAccountId,
     pickupAddress,
     pickupLatitude,
@@ -88,6 +104,7 @@ export function validateRequestRideInput(
     dropAddress,
     dropLatitude,
     dropLongitude,
+    rideType,
     estimatedDistance,
     estimatedFare,
   };
@@ -119,12 +136,36 @@ export function validateCancellationReason(
   return input.reason;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+function requireRideType(value: unknown): RideVehicleType {
+  if (value !== 'bike' && value !== 'auto' && value !== 'cab') {
+    throw new AppError(
+      'rideType must be bike, auto, or cab.',
+      400,
+      'INVALID_RIDE_TYPE',
+    );
+  }
+
+  return value;
 }
 
-function requireString(value: unknown, field: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
+function isRecord(
+  value: unknown,
+): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value)
+  );
+}
+
+function requireString(
+  value: unknown,
+  field: string,
+): string {
+  if (
+    typeof value !== 'string' ||
+    value.trim().length === 0
+  ) {
     throw new AppError(
       `${field} must be a non-empty string.`,
       400,
@@ -135,8 +176,14 @@ function requireString(value: unknown, field: string): string {
   return value.trim();
 }
 
-function requireNumber(value: unknown, field: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
+function requireNumber(
+  value: unknown,
+  field: string,
+): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value)
+  ) {
     throw new AppError(
       `${field} must be a valid number.`,
       400,
@@ -147,7 +194,10 @@ function requireNumber(value: unknown, field: string): number {
   return value;
 }
 
-function validateLatitude(value: number, field: string): void {
+function validateLatitude(
+  value: number,
+  field: string,
+): void {
   if (value < -90 || value > 90) {
     throw new AppError(
       `${field} must be between -90 and 90.`,
@@ -157,7 +207,10 @@ function validateLatitude(value: number, field: string): void {
   }
 }
 
-function validateLongitude(value: number, field: string): void {
+function validateLongitude(
+  value: number,
+  field: string,
+): void {
   if (value < -180 || value > 180) {
     throw new AppError(
       `${field} must be between -180 and 180.`,

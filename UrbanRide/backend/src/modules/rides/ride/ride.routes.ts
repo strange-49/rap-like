@@ -1,11 +1,21 @@
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type {
+  IncomingMessage,
+  ServerResponse,
+} from 'node:http';
 
+import type { AuthContext } from '../../../common/auth/auth-context';
 import {
   handleAssignRider,
   handleCancelRide,
   handleCompleteRide,
   handleDriverArriving,
+  handleGetCustomerRides,
   handleGetRequestedRides,
+  handleGetRiderActiveRide,
+  handleCustomerConfirmCompletion,
+  handleGetCustomerStartOtp,
+  handleGetRiderHistory,
+  handleRateRide,
   handleGetRide,
   handleRequestRide,
   handleStartRide,
@@ -15,169 +25,220 @@ import {
 export async function handleRideRoutes(
   request: IncomingMessage,
   response: ServerResponse,
+  authContext: AuthContext | null = null,
 ): Promise<boolean> {
+  const method = request.method ?? 'GET';
   const url = new URL(
     request.url ?? '/',
-    `http://${request.headers.host ?? 'localhost'}`,
+    'http://localhost',
   );
+  const pathname = url.pathname;
 
-  if (request.method === 'POST' && url.pathname === '/rides') {
-    let body = '';
-
-    for await (const chunk of request) {
-      body += chunk;
-    }
-
-    const input = JSON.parse(body);
-
-    await handleRequestRide(input, response);
-
+  if (
+    method === 'GET' &&
+    pathname === '/rides/rider/active'
+  ) {
+    await handleGetRiderActiveRide(authContext, response);
     return true;
   }
 
-  if (
-    request.method === 'GET' &&
-    url.pathname === '/rides/available'
-  ) {
-    await handleGetRequestedRides(response);
-
+  if (method === 'GET' && pathname === '/rides/rider/history') {
+    await handleGetRiderHistory(authContext, response);
     return true;
   }
 
-  if (
-    request.method === 'POST' &&
-    url.pathname.startsWith('/rides/') &&
-    url.pathname.endsWith('/assign')
-  ) {
-    const rideId = url.pathname.slice('/rides/'.length, -'/assign'.length);
-
-    if (!rideId) {
-      return false;
-    }
-
-    let body = '';
-
-    for await (const chunk of request) {
-      body += chunk;
-    }
-
-    const input = JSON.parse(body);
-
-    await handleAssignRider(rideId, input, response);
-
+  const customerCompletionMatch = pathname.match(
+    /^\/rides\/([^/]+)\/confirm-completion$/,
+  );
+  if (method === 'POST' && customerCompletionMatch) {
+    await handleCustomerConfirmCompletion(
+      customerCompletionMatch[1],
+      authContext,
+      response,
+    );
     return true;
   }
 
-  if (
-    request.method === 'POST' &&
-    url.pathname.startsWith('/rides/') &&
-    url.pathname.endsWith('/arrive')
-  ) {
-    const rideId = url.pathname.slice('/rides/'.length, -'/arrive'.length);
-
-    if (!rideId) {
-      return false;
-    }
-
-    await handleDriverArriving(rideId, response);
-
+  const ratingMatch = pathname.match(/^\/rides\/([^/]+)\/rating$/);
+  if (method === 'POST' && ratingMatch) {
+    const body = await readJsonBody(request);
+    await handleRateRide(ratingMatch[1], body, authContext, response);
     return true;
   }
 
-  if (
-    request.method === 'POST' &&
-    url.pathname.startsWith('/rides/') &&
-    url.pathname.endsWith('/start')
-  ) {
-    const rideId = url.pathname.slice('/rides/'.length, -'/start'.length);
-
-    if (!rideId) {
-      return false;
-    }
-
-    await handleStartRide(rideId, response);
-
+  const startOtpMatch = pathname.match(/^\/rides\/([^/]+)\/start-otp$/);
+  if (method === 'GET' && startOtpMatch) {
+    await handleGetCustomerStartOtp(startOtpMatch[1], authContext, response);
     return true;
   }
 
-  if (
-    request.method === 'POST' &&
-    url.pathname.startsWith('/rides/') &&
-    url.pathname.endsWith('/complete')
-  ) {
-    const rideId = url.pathname.slice(
-      '/rides/'.length,
-      -'/complete'.length,
+  if (method === 'POST' && pathname === '/rides') {
+    const input = await readJsonBody(request);
+
+    await handleRequestRide(
+      input,
+      authContext,
+      response,
     );
 
-    if (!rideId) {
-      return false;
-    }
+    return true;
+  }
 
-    await handleCompleteRide(rideId, response);
+  if (
+    method === 'GET' &&
+    pathname === '/rides/customer'
+  ) {
+    await handleGetCustomerRides(
+      authContext,
+      response,
+    );
 
     return true;
   }
 
   if (
-    request.method === 'POST' &&
-    url.pathname.startsWith('/rides/') &&
-    url.pathname.endsWith('/cancel')
+    method === 'GET' &&
+    pathname === '/rides/requested'
   ) {
-    const rideId = url.pathname.slice('/rides/'.length, -'/cancel'.length);
-
-    if (!rideId) {
-      return false;
-    }
-
-    let body = '';
-
-    for await (const chunk of request) {
-      body += chunk;
-    }
-
-    const input = JSON.parse(body);
-
-    await handleCancelRide(rideId, input, response);
+    await handleGetRequestedRides(
+      authContext,
+      response,
+    );
 
     return true;
   }
 
-  if (request.method === 'GET' && url.pathname.startsWith('/rides/')) {
-    const rideId = url.pathname.slice('/rides/'.length);
+  const rideMatch = pathname.match(
+    /^\/rides\/([^/]+)$/,
+  );
 
-    if (!rideId) {
-      return false;
+  if (rideMatch) {
+    const rideId = rideMatch[1];
+
+    if (method === 'GET') {
+      await handleGetRide(
+        rideId,
+        authContext,
+        response,
+      );
+
+      return true;
     }
 
-    await handleGetRide(rideId, response);
+    if (method === 'PATCH') {
+      const body = await readJsonBody(request);
 
-    return true;
+      await handleTransitionRide(
+        rideId,
+        body as {
+          status: Parameters<
+            typeof handleTransitionRide
+          >[1]['status'];
+        },
+        authContext,
+        response,
+      );
+
+      return true;
+    }
+
+    if (method === 'DELETE') {
+      const body = await readJsonBody(request);
+
+      await handleCancelRide(
+        rideId,
+        body,
+        authContext,
+        response,
+      );
+
+      return true;
+    }
   }
+
+  const assignMatch = pathname.match(
+    /^\/rides\/([^/]+)\/assign$/,
+  );
 
   if (
-    request.method === 'PATCH' &&
-    url.pathname.startsWith('/rides/') &&
-    url.pathname.endsWith('/status')
+    method === 'POST' &&
+    assignMatch
   ) {
-    const rideId = url.pathname.slice('/rides/'.length, -'/status'.length);
-
-    if (!rideId) {
-      return false;
-    }
-
-    let body = '';
-
-    for await (const chunk of request) {
-      body += chunk;
-    }
-
-    const input = JSON.parse(body);
-
-    await handleTransitionRide(rideId, input, response);
+    await handleAssignRider(
+      assignMatch[1],
+      authContext,
+      response,
+    );
 
     return true;
+  }
+
+  const actionMatch = pathname.match(
+    /^\/rides\/([^/]+)\/(arrive|start|complete)$/,
+  );
+
+  if (
+    method === 'POST' &&
+    actionMatch
+  ) {
+    const rideId = actionMatch[1];
+    const action = actionMatch[2];
+
+    if (action === 'arrive') {
+      await handleDriverArriving(
+        rideId,
+        authContext,
+        response,
+      );
+
+      return true;
+    }
+
+    if (action === 'start') {
+      const body = await readJsonBody(request);
+      await handleStartRide(
+        rideId,
+        body,
+        authContext,
+        response,
+      );
+
+      return true;
+    }
+
+    if (action === 'complete') {
+      await handleCompleteRide(
+        rideId,
+        authContext,
+        response,
+      );
+
+      return true;
+    }
   }
 
   return false;
+}
+
+async function readJsonBody(
+  request: IncomingMessage,
+): Promise<unknown> {
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of request) {
+    chunks.push(
+      Buffer.isBuffer(chunk)
+        ? chunk
+        : Buffer.from(chunk),
+    );
+  }
+
+  const rawBody = Buffer.concat(chunks)
+    .toString('utf8');
+
+  if (!rawBody.trim()) {
+    return {};
+  }
+
+  return JSON.parse(rawBody);
 }

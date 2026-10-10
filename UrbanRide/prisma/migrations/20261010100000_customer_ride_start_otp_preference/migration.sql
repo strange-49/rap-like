@@ -1,0 +1,5 @@
+ALTER TABLE "User"
+ADD COLUMN "rideStartOtpEnabled" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "Ride"
+ADD COLUMN "startOtpRequired" BOOLEAN NOT NULL DEFAULT true;
