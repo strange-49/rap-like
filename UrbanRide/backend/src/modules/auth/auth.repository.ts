@@ -12,6 +12,10 @@ export function findUserById(id: string) {
   return prisma.user.findUnique({ where: { id } });
 }
 
+export function findUserByEmail(email: string) {
+  return prisma.user.findUnique({ where: { email } });
+}
+
 export function updateUserRideStartOtpPreference(
   id: string,
   rideStartOtpEnabled: boolean,
@@ -28,6 +32,10 @@ export function createUser(data: {
   passwordHash: string
   role: 'CUSTOMER' | 'RIDER' | 'CLIENT_ADMIN' | 'ADMIN'
   tenantId?: string | null
+  fullName?: string | null
+  email?: string | null
+  phone?: string | null
+  countryCode?: string | null
 }) {
   return prisma.user.create({
     data,

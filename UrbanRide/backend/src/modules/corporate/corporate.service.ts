@@ -1,15 +1,22 @@
+import { randomBytes, createHash, scryptSync } from 'node:crypto'
 import { AppError } from '../../common/errors/app-error'
 import {
   createCorporateAccount,
   createCorporateEmployee,
   findCorporateAccountById,
   findCorporateAccountByTenantId,
+  findCorporateAccountByAccessCode,
+  registerCorporateAccountWithAdmin,
+  findCorporateEmployeeByIdentifier,
   findCorporateEmployeeByEmail,
+  findCorporateEmployeeByInvitationTokenHash,
+  activateCorporateEmployee,
   findCorporateEmployees,
   findCorporateRides,
   getCorporateBillingSummary,
   getCorporateReportData,
 } from './corporate.repository'
+import { findUserByEmail, findUserByUsername } from '../auth/auth.repository'
 
 export async function createAccount(
   name: string,
@@ -24,13 +31,64 @@ export async function createAccount(
     )
   }
 
+  const accessCode = await generateUniqueAccessCode()
   return createCorporateAccount({
+    accessCode,
     name: name.trim(),
     billingEmail:
       billingEmail?.trim() || undefined,
     tenantId:
       tenantId?.trim() || undefined,
   })
+}
+
+export async function registerCorporateCompany(input: {
+  companyName: string
+  billingEmail: string
+  adminName: string
+  adminUsername: string
+  adminEmail: string
+  password: string
+}) {
+  const companyName = input.companyName.trim()
+  const billingEmail = input.billingEmail.trim().toLowerCase()
+  const adminName = input.adminName.trim()
+  const adminEmail = input.adminEmail.trim().toLowerCase()
+  const adminUsername = input.adminUsername.trim().toLowerCase()
+
+  if (!companyName || !billingEmail.includes('@') || !adminName || !adminEmail.includes('@') || !adminUsername || input.password.length < 8) {
+    throw new AppError('Company name, valid company/admin emails, admin name and username, and a password of at least 8 characters are required.', 400, 'CORPORATE_REGISTRATION_INVALID')
+  }
+  if (adminUsername !== adminEmail) {
+    throw new AppError('For company administrator login, use the administrator email as the username.', 400, 'CORPORATE_ADMIN_USERNAME_EMAIL_MISMATCH')
+  }
+  if (await findUserByUsername(adminUsername) || await findUserByEmail(adminEmail)) {
+    throw new AppError('An account already exists with that administrator username or email.', 409, 'CORPORATE_ADMIN_ALREADY_EXISTS')
+  }
+
+  const tenantId = `corp_${randomBytes(12).toString('hex')}`
+  const accessCode = await generateUniqueAccessCode()
+  const adminPasswordHash = scryptSync(input.password, adminUsername, 64).toString('hex')
+  try {
+    return await registerCorporateAccountWithAdmin({
+      name: companyName, billingEmail, accessCode, tenantId,
+      adminUsername, adminEmail, adminPasswordHash, adminName,
+    })
+  } catch (error) {
+    // Unique constraints may be hit concurrently; never return a partial account.
+    throw new AppError('Company registration could not be completed. Check that the administrator email and username are unique, then try again.', 409, 'CORPORATE_REGISTRATION_CONFLICT')
+  }
+}
+
+async function generateUniqueAccessCode(): Promise<string> {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const bytes = randomBytes(4)
+    let code = ''
+    for (const byte of bytes) code += alphabet[byte % alphabet.length]
+    if (!(await findCorporateAccountByAccessCode(code))) return code
+  }
+  throw new AppError('Unable to generate a unique company access code. Please try again.', 503, 'ACCESS_CODE_GENERATION_FAILED')
 }
 
 export async function findAccountForTenant(
@@ -112,16 +170,79 @@ export async function addEmployee(
     )
   }
 
-  return createCorporateEmployee({
+  const normalizedEmail = email.trim().toLowerCase()
+  const invitationToken = randomBytes(32).toString('hex')
+  const invitationTokenHash = createHash('sha256').update(invitationToken).digest('hex')
+  const employee = await createCorporateEmployee({
     name: name.trim(),
-    email: email.trim(),
+    email: normalizedEmail,
     phone: phone?.trim() || undefined,
-    corporateAccount: {
-      connect: {
-        id: corporateAccountId,
-      },
-    },
+    invitationTokenHash,
+    invitationExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    corporateAccount: { connect: { id: corporateAccountId } },
   })
+  return {
+    employee: {
+      id: employee.id,
+      corporateAccountId: employee.corporateAccountId,
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone,
+      active: employee.active,
+      activatedAt: employee.activatedAt,
+      createdAt: employee.createdAt,
+      updatedAt: employee.updatedAt,
+    },
+    invitationToken,
+  }
+}
+
+export async function activateEmployeeInvitation(token: string, password: string) {
+  if (!token || token.length < 32 || password.length < 8) {
+    throw new AppError('A valid invitation and a password of at least 8 characters are required.', 400, 'INVALID_INVITATION_INPUT')
+  }
+  const tokenHash = createHash('sha256').update(token).digest('hex')
+  const employee = await findCorporateEmployeeByInvitationTokenHash(tokenHash)
+  if (!employee) {
+    throw new AppError('This invitation is invalid, expired, or already used.', 400, 'INVITATION_INVALID')
+  }
+  const username = employee.email.trim().toLowerCase()
+  const existing = await findUserByEmail(username) ?? await findUserByUsername(username)
+  if (existing) {
+    throw new AppError('An account already exists for this email. Contact your company administrator.', 409, 'EMPLOYEE_ACCOUNT_EXISTS')
+  }
+  const passwordHash = hashPassword(password, username)
+  const activation = await activateCorporateEmployee({
+    employeeId: employee.id,
+    invitationTokenHash: tokenHash,
+    username,
+    passwordHash,
+    fullName: employee.name,
+    email: username,
+    phone: employee.phone,
+    countryCode: null,
+  })
+  if (!activation) throw new AppError('This invitation is invalid, expired, or already used.', 400, 'INVITATION_INVALID')
+  return activation
+}
+
+export async function authenticateCorporateEmployee(accessCode: string, identifier: string) {
+  const normalizedCode = accessCode.trim().toUpperCase()
+  if (!/^[A-Z0-9]{4}$/.test(normalizedCode)) return null
+  const account = await findCorporateAccountByAccessCode(normalizedCode)
+  if (!account) return null
+  const employee = await findCorporateEmployeeByIdentifier(identifier.trim().toLowerCase())
+  if (!employee || !employee.active || !employee.userId || employee.corporateAccountId !== account.id) return null
+  return { account, employee }
+}
+
+function hashPassword(password: string, username: string): string {
+  return requireScrypt(password, username)
+}
+
+function requireScrypt(password: string, username: string): string {
+  // Keep the same password-hash format as the existing development auth service.
+  return scryptSync(password, username, 64).toString('hex')
 }
 
 export async function listEmployees(

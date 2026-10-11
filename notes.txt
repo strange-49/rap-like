@@ -1,0 +1,56 @@
+customer
+customer-dev-password
+
+rider
+rider-dev-password
+
+client_admin
+client-admin-dev-password
+
+cd D:\rap-like\UrbanRide\backend
+pnpm --filter @ride-platform/backend exec tsx src/server.ts
+
+cd D:\rap-like\UrbanRide
+pnpm --filter @ride-platform/customer-web dev
+
+cd D:\rap-like
+pnpm --filter @ride-platform/client-dashboard dev
+
+adb connect 192.168.29.120:40491
+adb -s 192.168.29.120:40491 get-state  //device
+adb -s 192.168.29.120:40491 reverse tcp:3000 tcp:3000    //3000
+adb -s 192.168.29.120:40491 reverse --list
+
+To install apk:
+adb -s 192.168.29.120:40491 install -r "D:\rap-like\UrbanRide\apps\rider-mobile\android\app\build\outputs\apk\debug\app-debug.apk"
+
+cd D:\rap-like\UrbanRide\apps\rider-mobile
+npx expo start --dev-client
+
+To verify:
+cd D:\rap-like
+pnpm --filter @ride-platform/customer-web exec tsc --noEmit
+
+
+
+
+Migration:
+    Migration changes the database structure. CRUD changes/uses the data inside that structure
+cmd for migration after changing design in schema.prisma:
+    pnpm exec prisma migrate dev --name add_user_auth
+    What Prisma did:
+            schema.prisma
+                ↓
+            defines database structure
+                ↓
+            migration
+                ↓
+            updates PostgreSQL structure
+                ↓
+            seed
+                ↓
+            puts initial data into tables
+                ↓
+            application
+                ↓
+            CRUD operations on that data

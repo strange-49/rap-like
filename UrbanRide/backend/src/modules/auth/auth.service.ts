@@ -15,9 +15,12 @@ import type {
   DevelopmentLoginRequest,
   DevelopmentSession,
 } from './auth.types'
+import { authenticateCorporateEmployee, activateEmployeeInvitation } from '../corporate/corporate.service'
 
 export interface DevelopmentAuthService {
   login(input: DevelopmentLoginRequest): Promise<DevelopmentSession | null>
+  corporateLogin(input: CorporateLoginRequest): Promise<DevelopmentSession | null>
+  activateCorporateEmployee(token: string, password: string): Promise<{ employeeId: string }>
   signup(
     input: SignupRequest,
   ): Promise<DevelopmentSession | null>
@@ -28,6 +31,16 @@ export interface DevelopmentAuthService {
 
 export interface SignupRequest {
   username: string
+  password: string
+  fullName: string
+  email: string
+  phone: string
+  countryCode: string
+}
+
+export interface CorporateLoginRequest {
+  accessCode: string
+  email: string
   password: string
 }
 
@@ -48,7 +61,7 @@ export function createDevelopmentAuthService(): DevelopmentAuthService {
 
   return {
     async login(input: DevelopmentLoginRequest) {
-      const user = await findUserByUsername(input.username)
+      const user = await findUserByUsername(input.username.trim().toLowerCase())
 
       if (!user || !user.active) {
         return null
@@ -64,11 +77,14 @@ export function createDevelopmentAuthService(): DevelopmentAuthService {
         return null
       }
 
-      return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled)
+      return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled, {
+        fullName: user.fullName, email: user.email, phone: user.phone, countryCode: user.countryCode,
+      })
     },
 
     async signup(input: SignupRequest) {
-      const existingUser = await findUserByUsername(input.username)
+      const normalizedUsername = input.username.trim().toLowerCase()
+      const existingUser = await findUserByUsername(normalizedUsername)
 
       if (existingUser) {
         return null
@@ -76,17 +92,39 @@ export function createDevelopmentAuthService(): DevelopmentAuthService {
 
       const passwordHash = hashPassword(
         input.password,
-        input.username,
+        normalizedUsername,
       )
 
       const user = await createUser({
-        username: input.username,
+        username: normalizedUsername,
         passwordHash,
         role: 'CUSTOMER',
         tenantId: null,
+        fullName: input.fullName.trim(),
+        email: input.email.trim().toLowerCase(),
+        phone: input.phone.trim(),
+        countryCode: input.countryCode.trim(),
       })
 
-      return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled)
+      return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled, {
+        fullName: user.fullName, email: user.email, phone: user.phone, countryCode: user.countryCode,
+      })
+    },
+
+    async corporateLogin(input: CorporateLoginRequest) {
+      const membership = await authenticateCorporateEmployee(input.accessCode, input.email)
+      if (!membership) return null
+      const user = await findUserById(membership.employee.userId!)
+      if (!user || !user.active || !passwordMatches(input.password, user.username, user.passwordHash)) return null
+      return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled, {
+        fullName: user.fullName, email: user.email, phone: user.phone, countryCode: user.countryCode,
+        corporateAccountId: membership.account.id, corporateAccountName: membership.account.name,
+      })
+    },
+
+    async activateCorporateEmployee(token: string, password: string) {
+      const activation = await activateEmployeeInvitation(token, password)
+      return { employeeId: activation.user.id }
     },
 
     async getRideStartOtpPreference(customerId: string) {
@@ -116,6 +154,7 @@ export function createDevelopmentAuthService(): DevelopmentAuthService {
     role: AuthContext['role'],
     tenantId: string | null,
     rideStartOtpEnabled: boolean,
+    profile: Partial<AuthContext> = {},
   ): DevelopmentSession {
     const token = randomBytes(32).toString('hex')
     const expiresAt = Date.now() + sessionLifetimeMs
@@ -123,9 +162,8 @@ export function createDevelopmentAuthService(): DevelopmentAuthService {
     const principal: AuthContext = {
       subjectId: userId,
       role,
-      tenant: tenantId
-        ? { tenantId }
-        : null,
+      tenant: tenantId ? { tenantId } : null,
+      ...profile,
     }
 
     sessions.set(token, {

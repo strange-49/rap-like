@@ -163,10 +163,17 @@ export async function handleRequestRide(
   const validatedInput =
     validateRequestRideInput(body);
 
+  if (validatedInput.corporateAccountId && !authContext.corporateAccountId) {
+    sendForbidden(response, 'Corporate bookings require a verified corporate employee login.');
+    return;
+  }
+
   const input: RequestRideInput = {
     ...validatedInput,
-    customerId:
-      authContext.subjectId,
+    customerId: authContext.subjectId,
+    ...(authContext.corporateAccountId
+      ? { corporateAccountId: authContext.corporateAccountId }
+      : { corporateAccountId: undefined }),
   };
 
   const ride =

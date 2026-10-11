@@ -1,29 +1,140 @@
+/* Shared corporate shell; supports light and dark theme attributes. */
 .client-layout {
-  min-height: 100vh;
+  --client-surface: #f6f9f8; --client-card: #ffffff; --client-text: #142c2a; --client-muted: #6d807d;
+  --client-border: #e1eae7; --client-accent: #07816f; --client-accent-strong: #066b5e; --client-accent-soft: #e2f5ef;
+  display: flex; min-height: 100vh; color: var(--client-text); background: var(--client-surface);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.client-layout *, .client-layout *::before, .client-layout *::after { box-sizing: border-box; }
+.client-sidebar { position: sticky; top: 0; display: flex; flex-direction: column; flex: 0 0 246px; width: 246px; height: 100vh; min-height: 560px; padding: 27px 16px 17px; border-right: 1px solid var(--client-border); background: var(--client-card); }
+.client-brand { display: flex; align-items: center; gap: 10px; margin: 0 10px 43px; color: var(--client-text); text-decoration: none; font-size: 21px; font-weight: 850; letter-spacing: -.06em; }
+.client-brand > span:last-child { display: grid; line-height: 1; }
+.client-brand > span:last-child > span, .client-mobile-brand strong > span { color: var(--client-accent); }
+.client-brand small { margin-top: 6px; color: var(--client-muted); font-size: 8px; letter-spacing: .19em; font-weight: 800; }
+.client-brand-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px 12px 12px 4px; color: white; background: linear-gradient(145deg, #16b99a, #057664); font-size: 21px; font-weight: 900; font-style: italic; box-shadow: 0 6px 14px rgba(7,129,111,.2); }
+.client-sidebar-label { margin: 0 12px 11px; color: #96a7a3; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
+.client-navigation { display: grid; gap: 5px; }
+.client-navigation a { position: relative; display: flex; align-items: center; gap: 13px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: var(--client-muted); text-decoration: none; font-size: 12px; font-weight: 650; transition: color .15s ease, background .15s ease; }
+.client-navigation a:hover { color: var(--client-accent); background: var(--client-accent-soft); }
+.client-navigation a.active { color: var(--client-accent-strong); background: var(--client-accent-soft); font-weight: 800; }
+.client-navigation a.active::before { position: absolute; content: ''; left: -16px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 4px 4px 0; background: var(--client-accent); }
+.client-nav-icon { display: grid; place-items: center; width: 21px; font-size: 17px; line-height: 1; }
+.client-sidebar-spacer { flex: 1; min-height: 40px; }
+.client-sidebar-help { display: flex; align-items: center; gap: 10px; margin: 0 3px 15px; padding: 13px 10px; border: 1px solid var(--client-border); border-radius: 12px; background: var(--client-surface); }
+.client-help-icon { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: 9px; color: var(--client-accent); background: var(--client-accent-soft); font-weight: 800; }
+.client-sidebar-help > span:last-child, .client-sidebar-profile > span:nth-child(2) { display: grid; gap: 4px; min-width: 0; }
+.client-sidebar-help strong, .client-sidebar-profile strong { font-size: 10px; }
+.client-sidebar-help small, .client-sidebar-profile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--client-muted); font-size: 9px; }
+.client-sidebar-profile { display: flex; align-items: center; gap: 10px; padding: 14px 4px 0; border-top: 1px solid var(--client-border); }
+.client-profile-avatar { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; color: var(--client-accent-strong); background: var(--client-accent-soft); font-weight: 800; font-size: 12px; }
+.client-sidebar-profile > span:nth-child(2) { flex: 1; }
+.client-profile-more { color: var(--client-muted); font-size: 22px; }
+.client-content-shell { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.client-topbar { position: sticky; z-index: 5; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 72px; padding: 0 clamp(20px, 3vw, 38px); border-bottom: 1px solid var(--client-border); background: color-mix(in srgb, var(--client-card) 92%, transparent); backdrop-filter: blur(16px); }
+.client-topbar-context { display: flex; align-items: center; gap: 9px; color: var(--client-muted); font-size: 11px; }
+.client-topbar-context strong { color: var(--client-text); font-weight: 750; }
+.client-topbar-status { width: 7px; height: 7px; border-radius: 50%; background: #19ad84; box-shadow: 0 0 0 4px rgba(25,173,132,.1); }
+.client-topbar-separator { color: var(--client-border); }
+.client-topbar-actions { display: flex; align-items: center; gap: 18px; }
+.client-secure-label { display: flex; align-items: center; gap: 6px; color: var(--client-muted); font-size: 10px; white-space: nowrap; }
+.client-secure-label span { display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; color: var(--client-accent); background: var(--client-accent-soft); font-size: 10px; }
+.client-main { width: 100%; max-width: 1600px; margin: 0 auto; flex: 1; min-width: 0; }
+.client-footer { display: flex; justify-content: space-between; gap: 14px; padding: 15px clamp(20px, 3vw, 38px); color: var(--client-muted); font-size: 9px; }
+.client-mobile-brand { display: none; align-items: center; gap: 8px; }
+.client-mobile-brand .client-brand-mark { width: 30px; height: 30px; font-size: 17px; }
+.client-mobile-brand strong { font-size: 17px; letter-spacing: -.05em; }
+/* Theme bridge: explicit app theme state takes precedence over OS preference. */
+html[data-theme="dark"] .client-layout, body[data-theme="dark"] .client-layout, .theme-dark .client-layout, [data-theme="dark"] .client-layout { --client-surface:#0c1718; --client-card:#132223; --client-text:#e8f2ef; --client-muted:#9aafaa; --client-border:#263b3a; --client-accent:#45d4b3; --client-accent-strong:#45d4b3; --client-accent-soft:#173d37; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .client-layout, body:not([data-theme="light"]) .client-layout, :root:not([data-theme="light"]) .client-layout { --client-surface:#0c1718; --client-card:#132223; --client-text:#e8f2ef; --client-muted:#9aafaa; --client-border:#263b3a; --client-accent:#45d4b3; --client-accent-strong:#45d4b3; --client-accent-soft:#173d37; }
+}
+@media (max-width: 900px) {
+  .client-sidebar { flex-basis: 205px; width: 205px; }
+  .client-brand { font-size: 19px; margin-left: 5px; }
+  .client-topbar { padding-inline: 20px; }
+}
+@media (max-width: 680px) {
+  .client-layout { display: block; }
+  .client-sidebar { position: static; display: block; width: 100%; height: auto; min-height: 0; padding: 12px 14px 10px; border-right: 0; border-bottom: 1px solid var(--client-border); }
+  .client-brand, .client-sidebar-label, .client-sidebar-spacer, .client-sidebar-help, .client-sidebar-profile { display: none; }
+  .client-navigation { display: flex; overflow-x: auto; gap: 5px; scrollbar-width: thin; }
+  .client-navigation a { flex: 0 0 auto; min-height: 38px; padding: 0 10px; gap: 7px; font-size: 11px; }
+  .client-navigation a.active::before { left: 8px; right: 8px; top: auto; bottom: 0; width: auto; height: 2px; }
+  .client-nav-icon { width: auto; font-size: 15px; }
+  .client-topbar { position: static; min-height: 60px; padding: 10px 15px; }
+  .client-mobile-brand { display: flex; }
+  .client-topbar-context { display: none; }
+  .client-topbar-actions { gap: 8px; }
+  .client-secure-label { display: none; }
+  .client-footer { padding: 14px 16px; }
 }
 
-.client-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #ddd;
-}
+/* Full-viewport shell and polished theme control */
+html, body, #root { min-height:100%; margin:0; width:100%; }
+body { overflow-x:hidden; }
+.client-layout { width:100%; min-height:100vh; min-height:100dvh; --client-surface:#f5f7f9; --client-card:#fff; --client-text:#17232c; --client-muted:#667785; --client-border:#e1e7ec; --client-accent:#087f70; --client-accent-strong:#066a5c; --client-accent-soft:#e0f5ef; }
+.client-layout[data-theme="dark"] { --client-surface:#080f14; --client-card:#0d171e; --client-text:#edf4f7; --client-muted:#9aabb6; --client-border:#22313b; --client-accent:#36d6b3; --client-accent-strong:#36d6b3; --client-accent-soft:#102e2a; color-scheme:dark; }
+.client-layout[data-theme="light"] { color-scheme:light; }
+.client-sidebar { flex-shrink:0; }
+.client-content-shell { min-height:100vh; min-height:100dvh; overflow:hidden; background:var(--client-surface); }
+.client-main { max-width:none; padding:0; width:100%; }
+.client-topbar { flex-shrink:0; }
+.client-theme-toggle { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--client-border); border-radius:999px; background:var(--client-surface); color:var(--client-text); padding:8px 13px; font-size:12px; font-weight:600; line-height:1; font-family:inherit; cursor:pointer; transition:background .18s,border-color .18s,transform .18s; }
+.client-theme-toggle:hover { border-color:var(--client-accent); transform:translateY(-1px); }
+.client-theme-toggle span:first-child { font-size:16px; color:var(--client-accent); }
+.client-signout { margin-left:auto; border:0; background:transparent; color:var(--client-muted); cursor:pointer; font-size:17px; padding:5px; }
+.client-navigation .client-nav-add { color:var(--client-accent); }
+.client-navigation .client-nav-add .client-nav-icon { font-size:20px; }
+@media (max-width:900px) { .client-sidebar { flex-basis:210px; width:210px; } }
+@media (max-width:680px) { .client-sidebar { padding:10px 12px; } .client-navigation { padding-bottom:2px; } .client-topbar { gap:10px; } .client-topbar-actions { margin-left:auto; } .client-theme-toggle { padding:8px 10px; } }
 
-.client-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+/* Profile menu, visible sign-out, and subtle UrbanRide mark motion */
+.client-brand-mark--animated { animation: urbanride-mark-float 3.2s ease-in-out infinite; transform-origin: center; }
+@keyframes urbanride-mark-float { 0%,100% { transform: translateY(0) rotate(0); box-shadow: 0 6px 14px rgba(7,129,111,.2); } 50% { transform: translateY(-2px) rotate(-3deg); box-shadow: 0 9px 18px rgba(7,129,111,.28); } }
+.client-profile-menu-wrap { position:relative; }
+.client-top-profile { display:flex; align-items:center; gap:9px; min-height:42px; padding:3px 9px 3px 4px; border:1px solid var(--client-border); border-radius:999px; background:var(--client-card); color:var(--client-text); cursor:pointer; font:inherit; }
+.client-top-profile .client-profile-avatar { width:32px; height:32px; flex-basis:32px; }
+.client-top-profile-copy { display:grid; gap:2px; text-align:left; }
+.client-top-profile-copy strong { max-width:125px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+.client-top-profile-copy small { color:var(--client-muted); font-size:9px; }
+.client-profile-dropdown { position:absolute; top:calc(100% + 9px); right:0; z-index:30; width:220px; padding:7px; border:1px solid var(--client-border); border-radius:14px; background:var(--client-card); box-shadow:0 16px 40px rgba(0,0,0,.16); }
+.client-profile-dropdown-heading { display:grid; gap:4px; padding:10px; border-bottom:1px solid var(--client-border); margin-bottom:5px; }
+.client-profile-dropdown-heading strong { font-size:12px; color:var(--client-text); }
+.client-profile-dropdown-heading small { font-size:10px; color:var(--client-muted); overflow-wrap:anywhere; }
+.client-profile-dropdown button { display:block; width:100%; padding:10px; border:0; border-radius:8px; text-align:left; background:transparent; color:var(--client-text); cursor:pointer; font:inherit; font-size:11px; }
+.client-profile-dropdown button:hover { background:var(--client-accent-soft); }
+.client-profile-dropdown .client-profile-logout { color:#d04d4d; font-weight:750; }
+@media (max-width:680px) { .client-top-profile-copy, .client-top-profile > span:last-child { display:none; } .client-top-profile { padding:3px; } }
+@media (prefers-reduced-motion:reduce) { .client-brand-mark--animated { animation:none; } }
 
-.client-navigation {
-  display: flex;
-  gap: 16px;
-  margin-top: 16px;
-}
 
-.client-navigation a {
-  text-decoration: none;
-}
-
-.client-main {
-  max-width: 1200px;
-  margin: 0 auto;
-}
+/* v4 premium account menu: detailed identity, workspace and explicit account actions */
+.client-topbar { z-index: 40; }
+.client-profile-menu-wrap { z-index: 50; }
+.client-profile-dropdown { width: min(320px, calc(100vw - 28px)); padding: 10px; border-radius: 18px; background: var(--client-card); color: var(--client-text); box-shadow: 0 22px 55px rgba(0,0,0,.24); animation: client-profile-enter .16s ease-out both; }
+@keyframes client-profile-enter { from { opacity: 0; transform: translateY(-5px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.client-profile-dropdown-heading { display:flex; align-items:center; gap:12px; padding:12px 10px 15px; margin:0; border-bottom:1px solid var(--client-border); }
+.client-profile-dropdown-avatar { display:grid; place-items:center; flex:0 0 44px; width:44px; height:44px; border-radius:15px; color:var(--client-accent-strong); background:var(--client-accent-soft); font-size:17px; font-weight:850; box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--client-accent) 22%,transparent); }
+.client-profile-dropdown-identity { display:grid; min-width:0; gap:4px; }
+.client-profile-dropdown-identity strong { font-size:13px; line-height:1.25; }
+.client-profile-dropdown-identity small { color:var(--client-muted); font-size:10px; overflow-wrap:anywhere; }
+.client-profile-role { width:max-content; padding:4px 6px; border-radius:5px; background:var(--client-accent-soft); color:var(--client-accent-strong); font-size:8px; font-weight:850; letter-spacing:.08em; }
+.client-profile-company { display:flex; gap:10px; align-items:center; margin:10px 0 8px; padding:11px; border:1px solid var(--client-border); border-radius:12px; background:var(--client-surface); }
+.client-profile-company-icon { display:grid; place-items:center; flex:0 0 34px; width:34px; height:34px; border-radius:10px; background:var(--client-accent-soft); color:var(--client-accent-strong); font-size:17px; }
+.client-profile-company > span:last-child { display:grid; gap:3px; min-width:0; }
+.client-profile-company small { color:var(--client-muted); font-size:8px; font-weight:750; letter-spacing:.07em; }
+.client-profile-company strong { font-size:11px; overflow-wrap:anywhere; }
+.client-profile-company .client-profile-account-id { font-size:9px; font-weight:500; letter-spacing:0; overflow-wrap:anywhere; }
+.client-profile-menu-label { padding:9px 10px 5px; color:var(--client-muted); font-size:8px; font-weight:850; letter-spacing:.14em; }
+.client-profile-dropdown button { display:flex; align-items:center; gap:10px; padding:10px; min-height:48px; border-radius:10px; }
+.client-profile-dropdown button > span:nth-child(2) { display:grid; gap:3px; flex:1; min-width:0; }
+.client-profile-dropdown button strong { color:inherit; font-size:11px; font-weight:750; }
+.client-profile-dropdown button small { color:var(--client-muted); font-size:9px; font-weight:450; }
+.client-menu-item-icon { display:grid; place-items:center; flex:0 0 30px; width:30px; height:30px; border-radius:9px; color:var(--client-accent-strong); background:var(--client-accent-soft); font-size:15px; }
+.client-menu-chevron { color:var(--client-muted); font-size:20px; line-height:1; }
+.client-profile-menu-divider { height:1px; margin:7px 4px; background:var(--client-border); }
+.client-profile-dropdown .client-profile-logout { color:#d74d58; background:color-mix(in srgb,#d74d58 7%,transparent); }
+.client-profile-dropdown .client-profile-logout .client-menu-item-icon { color:#d74d58; background:color-mix(in srgb,#d74d58 12%,transparent); }
+.client-profile-dropdown button:focus-visible, .client-top-profile:focus-visible { outline:2px solid var(--client-accent); outline-offset:2px; }
+@media (max-width:680px) { .client-profile-dropdown { position:fixed; top:68px; right:12px; width:min(320px,calc(100vw - 24px)); } }
+@media (prefers-reduced-motion:reduce) { .client-profile-dropdown { animation:none; } }

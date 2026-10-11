@@ -6,6 +6,12 @@ export type AuthPrincipal = {
   tenant: {
     tenantId: string
   } | null
+  corporateAccountId?: string
+  corporateAccountName?: string
+  fullName?: string | null
+  email?: string | null
+  phone?: string | null
+  countryCode?: string | null
 }
 
 export type AuthSession = {
@@ -82,14 +88,30 @@ export async function login(
 export async function signup(
   username: string,
   password: string,
+  profile: { fullName: string; phone: string; countryCode: string },
 ): Promise<AuthSession> {
-  return authenticate('/auth/development/signup', username, password)
+  return authenticate('/auth/development/signup', username, password, {
+    fullName: profile.fullName, email: username, phone: profile.phone, countryCode: profile.countryCode,
+  })
+}
+
+export async function corporateLogin(accessCode: string, identifier: string, password: string): Promise<AuthSession> {
+  return authenticate('/auth/development/corporate-login', identifier, password, { accessCode: accessCode.trim().toUpperCase(), email: identifier.trim().toLowerCase() })
+}
+
+export async function activateCorporateEmployee(token: string, password: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/auth/development/corporate-activate`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token, password }),
+  })
+  const data = await response.json()
+  if (!response.ok) throw new Error(data?.error?.message ?? 'Unable to activate corporate account.')
 }
 
 async function authenticate(
   endpoint: string,
   username: string,
   password: string,
+  extra: Record<string, string> = {},
 ): Promise<AuthSession> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method: 'POST',
@@ -99,6 +121,7 @@ async function authenticate(
     body: JSON.stringify({
       username,
       password,
+      ...extra,
     }),
   })
 

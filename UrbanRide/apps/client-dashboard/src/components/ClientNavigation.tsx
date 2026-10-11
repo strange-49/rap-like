@@ -1,16 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { ROUTE_PATHS } from '../routes/route-paths'
-
-export function ClientNavigation() {
-  return (
-    <nav>
-      <NavLink to={ROUTE_PATHS.dashboard}>Dashboard</NavLink>
-      {' | '}
-      <NavLink to={ROUTE_PATHS.employees}>Employees</NavLink>
-      {' | '}
-      <NavLink to={ROUTE_PATHS.rides}>Rides</NavLink>
-      {' | '}
-      <NavLink to={ROUTE_PATHS.settings}>Settings</NavLink>
-    </nav>
-  )
-}
+const links = [
+ { to:'/', label:'Overview', icon:'⌂', end:true },
+ { to:'/employees', label:'Employees', icon:'♙' },
+ { to:'/employees?add=1', label:'Add Employee', icon:'＋', special:true },
+ { to:'/rides', label:'Rides', icon:'▱' },
+ { to:'/reports', label:'Reports', icon:'▥' },
+ { to:'/settings', label:'Settings', icon:'⚙' },
+]
+export function ClientNavigation() { return <nav className="client-navigation" aria-label="Company navigation">{links.map(link => <NavLink key={link.label} to={link.to} end={link.end} className={({isActive}) => `${isActive ? 'active' : ''} ${link.special ? 'client-nav-add' : ''}`}><span className="client-nav-icon" aria-hidden="true">{link.icon}</span><span>{link.label}</span></NavLink>)}</nav> }

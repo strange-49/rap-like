@@ -1,15 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { ValidationError } from '../../common/validation/validation-error'
-import type { DevelopmentAuthService } from './auth.service'
-import type {
-  DevelopmentLoginRequest,
-  SignupRequest,
-} from './auth.types'
+import type { DevelopmentAuthService, CorporateLoginRequest, SignupRequest } from './auth.service'
+import type { DevelopmentLoginRequest } from './auth.types'
 
 export interface AuthController {
   login(request: IncomingMessage, response: ServerResponse): Promise<void>
   signup(request: IncomingMessage, response: ServerResponse): Promise<void>
+  corporateLogin(request: IncomingMessage, response: ServerResponse): Promise<void>
+  activateCorporateEmployee(request: IncomingMessage, response: ServerResponse): Promise<void>
   currentSession(request: IncomingMessage, response: ServerResponse): Promise<void>
   updatePreferences(request: IncomingMessage, response: ServerResponse): Promise<void>
 }
@@ -33,6 +32,25 @@ export function createAuthController(
       }
 
       sendJson(response, 200, session)
+    },
+
+    async corporateLogin(request, response) {
+      const input = await readCorporateLoginRequest(request)
+      const session = await service.corporateLogin(input)
+      if (!session) {
+        sendJson(response, 401, { error: { code: 'CORPORATE_LOGIN_FAILED', message: 'Invalid company code or employee credentials.' } })
+        return
+      }
+      sendJson(response, 200, session)
+    },
+
+    async activateCorporateEmployee(request, response) {
+      const value = await readJson(request)
+      if (!isRecord(value) || typeof value.token !== 'string' || typeof value.password !== 'string') {
+        throw new ValidationError('Invitation token and password are required.')
+      }
+      const result = await service.activateCorporateEmployee(value.token, value.password)
+      sendJson(response, 200, { activated: true, employeeId: result.employeeId })
     },
 
     async signup(request, response) {
@@ -135,6 +153,14 @@ async function readSignupRequest(
   return value
 }
 
+async function readCorporateLoginRequest(request: IncomingMessage): Promise<CorporateLoginRequest> {
+  const value = await readJson(request)
+  if (!isRecord(value) || typeof value.accessCode !== 'string' || !value.accessCode.trim() || typeof value.email !== 'string' || !value.email.trim() || typeof value.password !== 'string' || !value.password) {
+    throw new ValidationError('Company access code, email, and password are required.')
+  }
+  return { accessCode: value.accessCode, email: value.email, password: value.password }
+}
+
 async function readJson(
   request: IncomingMessage,
 ): Promise<unknown> {
@@ -172,10 +198,17 @@ function isLoginRequest(
   )
 }
 
-function isSignupRequest(
-  value: unknown,
-): value is SignupRequest {
-  return isLoginRequest(value)
+function isSignupRequest(value: unknown): value is SignupRequest {
+  if (!isRecord(value) || !isLoginRequest(value)) return false
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.fullName === 'string' && candidate.fullName.trim().length >= 2 &&
+    typeof candidate.email === 'string' && candidate.email.includes('@') && typeof candidate.username === 'string' && candidate.username.trim().toLowerCase() === candidate.email.trim().toLowerCase() &&
+    typeof candidate.phone === 'string' && candidate.phone.trim().length >= 7 &&
+    typeof candidate.countryCode === 'string' && candidate.countryCode.startsWith('+')
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function sendJson(

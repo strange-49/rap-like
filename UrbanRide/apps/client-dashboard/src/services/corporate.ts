@@ -6,6 +6,7 @@ export type CorporateAccount = {
   id: string
   tenantId: string | null
   name: string
+  accessCode: string
   billingEmail: string | null
   createdAt: string
   updatedAt: string
@@ -18,6 +19,8 @@ export type Employee = {
   email: string
   phone: string | null
   active: boolean
+  userId?: string | null
+  activatedAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -104,7 +107,7 @@ export function addEmployee(
     phone?: string
   },
 ) {
-  return request<Employee>(
+  return request<{ employee: Employee; invitationToken: string }>(
     `/corporate/accounts/${encodeURIComponent(
       corporateAccountId,
     )}/employees`,

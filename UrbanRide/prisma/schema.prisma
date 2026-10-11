@@ -14,7 +14,6 @@ enum PlatformRole {
   CLIENT_ADMIN
   ADMIN
 }
-
 enum RideStatus {
   REQUESTED
   SEARCHING
@@ -24,7 +23,6 @@ enum RideStatus {
   COMPLETED
   CANCELLED
 }
-
 enum CancellationReason {
   CUSTOMER
   RIDER
@@ -32,15 +30,21 @@ enum CancellationReason {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  username     String       @unique
-  passwordHash String
-  role         PlatformRole
-  tenantId     String?
-  rideStartOtpEnabled Boolean @default(false)
-  active       Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  username            String       @unique
+  passwordHash        String
+  role                PlatformRole
+  tenantId            String?
+  fullName            String?
+  email               String?      @unique
+  phone               String?
+  countryCode         String?
+  rideStartOtpEnabled Boolean      @default(false)
+  active              Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  corporateEmployee CorporateEmployee?
 
   @@index([role])
   @@index([tenantId])
@@ -48,42 +52,35 @@ model User {
 }
 
 model Ride {
-  id         String     @id @default(cuid())
-  customerId String
-  corporateAccountId String?
-  riderId    String?
-  status     RideStatus @default(REQUESTED)
-  startOtpRequired Boolean @default(true)
-
-  pickupAddress   String
-  pickupLatitude  Decimal @db.Decimal(10, 7)
-  pickupLongitude Decimal @db.Decimal(10, 7)
-
-  dropAddress   String
-  dropLatitude  Decimal @db.Decimal(10, 7)
-  dropLongitude Decimal @db.Decimal(10, 7)
-
-  estimatedDistance Decimal? @db.Decimal(10, 2)
-  estimatedFare     Decimal? @db.Decimal(10, 2)
-  finalFare         Decimal? @db.Decimal(10, 2)
-
-  cancellationReason CancellationReason?
-  cancelledAt        DateTime?
-
-  requestedAt DateTime  @default(now())
-  assignedAt  DateTime?
-  startedAt   DateTime?
-  riderCompletedAt DateTime?
+  id                  String     @id @default(cuid())
+  customerId          String
+  corporateAccountId  String?
+  riderId             String?
+  status              RideStatus @default(REQUESTED)
+  startOtpRequired    Boolean    @default(true)
+  pickupAddress       String
+  pickupLatitude      Decimal    @db.Decimal(10, 7)
+  pickupLongitude     Decimal    @db.Decimal(10, 7)
+  dropAddress         String
+  dropLatitude        Decimal    @db.Decimal(10, 7)
+  dropLongitude       Decimal    @db.Decimal(10, 7)
+  estimatedDistance   Decimal?   @db.Decimal(10, 2)
+  estimatedFare       Decimal?   @db.Decimal(10, 2)
+  finalFare           Decimal?   @db.Decimal(10, 2)
+  cancellationReason  CancellationReason?
+  cancelledAt         DateTime?
+  requestedAt         DateTime   @default(now())
+  assignedAt          DateTime?
+  startedAt           DateTime?
+  riderCompletedAt    DateTime?
   customerCompletedAt DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  corporateAccount CorporateAccount? @relation(fields: [corporateAccountId], references: [id], onDelete: SetNull)
-  payment Payment?
-  rating  RideRating?
-  startOtp RideStartOtp?
-
+  completedAt         DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  corporateAccount    CorporateAccount? @relation(fields: [corporateAccountId], references: [id], onDelete: SetNull)
+  payment             Payment?
+  rating              RideRating?
+  startOtp            RideStartOtp?
   @@index([customerId])
   @@index([riderId])
   @@index([corporateAccountId])
@@ -100,20 +97,17 @@ model RideRating {
   feedback   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
-
+  ride       Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
   @@index([customerId])
   @@index([riderId])
 }
 
 model RideStartOtp {
-  rideId    String   @id
+  rideId     String   @id
   secretHash String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  ride       Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
 }
 
 model RiderDeviceToken {
@@ -123,7 +117,6 @@ model RiderDeviceToken {
   platform  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@index([riderId])
 }
 
@@ -131,7 +124,6 @@ enum PaymentMode {
   ADVANCE
   POST_RIDE
 }
-
 enum PaymentStatus {
   PENDING
   AUTHORIZED
@@ -141,21 +133,17 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id     String        @id @default(cuid())
-  rideId String        @unique
-  amount Decimal       @db.Decimal(10, 2)
-  mode   PaymentMode  @default(POST_RIDE)
-  status PaymentStatus @default(PENDING)
-
-  razorpayOrderId   String? @unique
-  razorpayPaymentId String? @unique
+  id                String        @id @default(cuid())
+  rideId            String        @unique
+  amount            Decimal       @db.Decimal(10, 2)
+  mode              PaymentMode   @default(POST_RIDE)
+  status            PaymentStatus @default(PENDING)
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?       @unique
   razorpaySignature String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
-
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  ride              Ride          @relation(fields: [rideId], references: [id], onDelete: Cascade)
   @@index([status])
   @@index([createdAt])
 }
@@ -165,26 +153,29 @@ model CorporateAccount {
   tenantId     String?            @unique
   name         String
   billingEmail String?
+  accessCode   String             @unique
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
-
-  employees CorporateEmployee[]
-  rides     Ride[]
-
+  employees    CorporateEmployee[]
+  rides        Ride[]
   @@index([name])
 }
+
 model CorporateEmployee {
-  id                String          @id @default(cuid())
-  corporateAccountId String
-  name              String
-  email             String          @unique
-  phone             String?
-  active            Boolean         @default(true)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-
-  corporateAccount CorporateAccount @relation(fields: [corporateAccountId], references: [id], onDelete: Cascade)
-
+  id                   String          @id @default(cuid())
+  corporateAccountId   String
+  name                 String
+  email                String          @unique
+  phone                String?
+  active                Boolean         @default(true)
+  userId                String?         @unique
+  invitationTokenHash   String?         @unique
+  invitationExpiresAt   DateTime?
+  activatedAt           DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  corporateAccount      CorporateAccount @relation(fields: [corporateAccountId], references: [id], onDelete: Cascade)
+  user                  User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   @@index([corporateAccountId])
   @@index([active])
 }

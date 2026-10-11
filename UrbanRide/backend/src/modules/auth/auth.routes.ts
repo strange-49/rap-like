@@ -24,6 +24,16 @@ export function createAuthRoutes(
       return
     }
 
+    if (request.method === 'POST' && path === `${authRoutePrefix}/corporate-login`) {
+      void controller.corporateLogin(request, response).catch((error: unknown) => sendError(response, error))
+      return
+    }
+
+    if (request.method === 'POST' && path === `${authRoutePrefix}/corporate-activate`) {
+      void controller.activateCorporateEmployee(request, response).catch((error: unknown) => sendError(response, error))
+      return
+    }
+
     if (
       request.method === 'POST' &&
       path === `${authRoutePrefix}/signup`
