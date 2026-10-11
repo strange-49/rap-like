@@ -1,0 +1,26 @@
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+body, #root { min-height: 100%; }
+body { font-family: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif; }
+.customer-app { min-height: 100vh; overflow-x: clip; }
+.customer-main { width: 100%; max-width: none; margin: 0; padding: 0 0 0; }
+.customer-header { background: var(--urban-ink); border-color: var(--urban-line); color: var(--urban-white); }
+.customer-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--urban-white); font: 800 1.25rem 'Manrope', sans-serif; text-decoration: none; }
+.brand-mark { width: 27px; height: 27px; min-width: 27px; height: 27px; border-radius: 50%; padding: 0; display: inline-grid; place-items: center; background: var(--urban-green); color: #07130d; box-shadow: none; font-size: 0; }
+.brand-mark::before { content: ''; display: block; width: 12px; height: 11px; border: 4px solid #07130d; border-top-color: transparent; border-radius: 0 0 8px 8px; transform: translateY(-1px); }
+.brand-subtitle { display: none; }
+.menu-trigger { border: 0; background: transparent; border-radius: 8px; gap: 4px; align-content: center; }
+.menu-trigger span { display: block; width: 24px; height: 2px; border-radius: 3px; background: var(--urban-white); }
+.customer-header-actions { gap: 14px; }
+.customer-header-link { background: transparent; color: var(--urban-white); border-color: var(--urban-line); }
+.customer-header-actions > .customer-header-link { display: none; }
+.profile-avatar { background: var(--urban-green); color: #07130d; }
+.customer-main, .home-page { color: var(--urban-white); }
+:root[data-theme="dark"] body { background: #080d11; }
+:root[data-theme="light"] body { background: #f2f6f3; }
+.primary-button { background: var(--urban-green); border-color: var(--urban-green); color: #04150c; box-shadow: 0 8px 28px rgb(16 200 120 / 16%); }
+.primary-button:hover:not(:disabled) { background: var(--urban-green-bright); border-color: var(--urban-green-bright); color: #04150c; }
+.secondary-button { background: rgb(255 255 255 / 7%); color: var(--urban-white); border-color: var(--urban-line); }
+.text-link { color: var(--urban-green-bright); }
+.section-eyebrow { color: var(--urban-green-bright); letter-spacing: .09em; font-size: .68rem; }
+h1,h2,h3 { font-family: 'Manrope', 'DM Sans', sans-serif; }

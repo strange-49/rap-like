@@ -3,6 +3,9 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { BookingPage } from '../pages/BookingPage'
+import { RideHistoryPage } from '../pages/RideHistoryPage'
+import { CustomerSectionPage } from '../pages/CustomerSectionPage'
 import {
   clearSession,
   getCurrentSession,
@@ -75,10 +78,8 @@ export function AppRoutes() {
   return (
     <CustomerLayout>
       <Routes>
-        <Route
-          path={ROUTE_PATHS.login}
-          element={<LoginPage />}
-        />
+        <Route path={ROUTE_PATHS.login} element={<LoginPage />} />
+        <Route path={ROUTE_PATHS.signup} element={<LoginPage />} />
 
         <Route
           path={ROUTE_PATHS.home}
@@ -90,6 +91,17 @@ export function AppRoutes() {
         />
 
         <Route
+          path={ROUTE_PATHS.booking}
+          element={
+            <ProtectedRoute>
+              <BookingPage />
+            </ProtectedRoute>
+          }
+        />
+
+
+
+        <Route
           path={ROUTE_PATHS.settings}
           element={
             <ProtectedRoute>
@@ -97,6 +109,19 @@ export function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path={ROUTE_PATHS.myRides}
+          element={
+            <ProtectedRoute>
+              <RideHistoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {[ROUTE_PATHS.savedPlaces, ROUTE_PATHS.payments, ROUTE_PATHS.notifications, ROUTE_PATHS.safety, ROUTE_PATHS.help].map((path) => (
+          <Route key={path} path={path} element={<ProtectedRoute><CustomerSectionPage /></ProtectedRoute>} />
+        ))}
 
         <Route
           path="*"

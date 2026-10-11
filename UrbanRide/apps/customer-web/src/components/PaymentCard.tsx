@@ -141,30 +141,39 @@ export function PaymentCard({ ride, onPaymentUpdate }: PaymentCardProps) {
       {paymentStatus && <p>Payment status: {paymentStatus}</p>}
 
       {ride && (
-        <label>
-          Payment option
-          <select
-            value={paymentMode}
-            onChange={(event) =>
-              setPaymentMode(event.target.value as PaymentMode)
-            }
+        <div className="payment-mode-options" role="radiogroup" aria-label="Payment option">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={paymentMode === 'ADVANCE'}
+            className={`payment-mode-option ${paymentMode === 'ADVANCE' ? 'is-selected' : ''}`}
+            onClick={() => setPaymentMode('ADVANCE')}
           >
-            <option value="POST_RIDE">
-              Pay after ride
-            </option>
-            <option value="ADVANCE">
-              Pay in advance
-            </option>
-          </select>
-        </label>
+            <span className="payment-radio-dot" aria-hidden="true" />
+            <span className="payment-mode-copy"><strong>Pay in Advance</strong><small>Online · Razorpay / UPI / Card</small></span>
+            <span className="payment-mode-tag">Secure</span>
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={paymentMode === 'POST_RIDE'}
+            className={`payment-mode-option ${paymentMode === 'POST_RIDE' ? 'is-selected' : ''}`}
+            onClick={() => setPaymentMode('POST_RIDE')}
+          >
+            <span className="payment-radio-dot" aria-hidden="true" />
+            <span className="payment-mode-copy"><strong>Pay After Ride</strong><small>Cash / UPI / Card after completion</small></span>
+          </button>
+        </div>
       )}
 
       <button
+        className="payment-proceed-button"
         type="button"
         onClick={handlePayment}
         disabled={!ride || busy || ['CAPTURED', 'PENDING', 'AUTHORIZED'].includes(paymentStatus ?? '') || (paymentMode === 'POST_RIDE' && ride.status !== 'COMPLETED')}
       >
-        {busy ? 'Processing...' : paymentStatus === 'CAPTURED' ? 'Paid' : 'Pay Now'}
+        {busy ? 'Processing…' : paymentStatus === 'CAPTURED' ? 'Payment Successful' : paymentMode === 'POST_RIDE' && ride?.status !== 'COMPLETED' ? 'Pay After Ride' : `Proceed to Pay ₹${Number(ride?.finalFare ?? ride?.estimatedFare ?? 0).toFixed(2)}`}
+        {!busy && paymentStatus !== 'CAPTURED' && <span aria-hidden="true"> →</span>}
       </button>
 
       {message && <p>{message}</p>}

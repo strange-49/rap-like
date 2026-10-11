@@ -1,0 +1,112 @@
+
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="light"] .cinematic-home::before { opacity: .18; }
+:root[data-theme="light"] .cinematic-home::after { background: linear-gradient(180deg, rgb(248 251 249 / 20%), rgb(248 251 249 / 76%) 58%, var(--page-bg)); }
+:root[data-theme="light"] .glass-card,
+:root[data-theme="light"] .home-active-ride,
+:root[data-theme="light"] .mini-tracker,
+:root[data-theme="light"] .home-footer-cards article { background: rgb(255 255 255 / 83%); }
+:root[data-theme="light"] .home-hero h1,
+:root[data-theme="light"] .home-hero p { text-shadow: 0 1px 16px rgb(255 255 255 / 65%); }
+:root[data-theme="light"] .booking-sidebar { background: #f7f9f7; color: #17231d; }
+:root[data-theme="light"] .booking-sidebar .booking-card { background: #fff; border-color: #dbe5de; }
+:root[data-theme="light"] .booking-sidebar .booking-card-title,
+:root[data-theme="light"] .booking-sidebar .subsection-title { color: #17231d; }
+:root[data-theme="light"] .booking-sidebar .muted-copy { color: #5d6d64; }
+
+
+/* Both themes share the same locally bundled UrbanRide city scene. */
+.cinematic-home::before {
+  background-image: url('../assets/urbanride-night-city.png');
+  background-position: center 54%;
+  background-size: cover;
+}
+.explore-city-banner {
+  background-image: linear-gradient(90deg, rgb(3 8 12 / 64%), rgb(3 8 12 / 18%)), url('../assets/urbanride-explore-city.png');
+  background-position: center 66%;
+  background-size: cover;
+}
+:root[data-theme="light"] .cinematic-home::before {
+  background-image: url('../assets/urbanride-night-city.png');
+  opacity: .36;
+}
+:root[data-theme="light"] .explore-city-banner {
+  background-image: linear-gradient(90deg, rgb(3 8 12 / 64%), rgb(3 8 12 / 18%)), url('../assets/urbanride-explore-city.png');
+}
+
+
+/* UrbanRide's approved customer experience is dark-only; no light-mode styling is exposed. */
+:root { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: dark; }
+:root[data-theme="light"] body { background: #080d11; }
+:root[data-theme="light"] .cinematic-home::after {
+  background: linear-gradient(90deg, rgb(3 7 10 / 40%), rgb(4 9 12 / 24%) 58%, rgb(4 8 11 / 38%)), linear-gradient(180deg, rgb(2 6 9 / 8%) 5%, rgb(5 10 13 / 28%) 72%, #080d11 100%);
+}
+:root[data-theme="light"] .glass-card,
+:root[data-theme="light"] .home-active-ride,
+:root[data-theme="light"] .mini-tracker,
+:root[data-theme="light"] .home-footer-cards article { background: rgb(7 13 17 / 42%); }
+:root[data-theme="light"] .home-hero h1,
+:root[data-theme="light"] .home-hero p { text-shadow: 0 3px 30px rgb(0 0 0 / 30%); }
+:root[data-theme="light"] .ride-details-drawer { background: rgb(12 18 23 / 94%); }
+
+
+/* V5 theme restoration: actual light and dark palettes switch with the header control. */
+:root { color-scheme: dark; }
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="light"] body { background: #f4f8fb; }
+:root[data-theme="light"] .cinematic-home { color: #172633; }
+:root[data-theme="light"] .cinematic-home .home-recent-rides,
+:root[data-theme="light"] .cinematic-home .mini-tracker,
+:root[data-theme="light"] .cinematic-home .home-active-ride,
+:root[data-theme="light"] .cinematic-home .home-footer-cards article { background: rgb(255 255 255 / 84%); border-color: rgb(27 60 82 / 14%); }
+:root[data-theme="light"] .cinematic-home .home-recent-rides h2,
+:root[data-theme="light"] .cinematic-home .recent-ride-copy strong,
+:root[data-theme="light"] .cinematic-home .recent-ride-price strong,
+:root[data-theme="light"] .cinematic-home .home-footer-heading h2,
+:root[data-theme="light"] .cinematic-home .home-footer-cards h3,
+:root[data-theme="light"] .cinematic-home .urbanride-footer > div strong { color: #172633; }
+:root[data-theme="light"] .cinematic-home .recent-ride-copy small,
+:root[data-theme="light"] .cinematic-home .home-footer-heading p,
+:root[data-theme="light"] .cinematic-home .home-footer-cards p,
+:root[data-theme="light"] .cinematic-home .urbanride-footer,
+:root[data-theme="light"] .cinematic-home .urbanride-footer nav a { color: #53697a; }
+:root[data-theme="light"] .cinematic-home .quick-action-card { background: rgb(255 255 255 / 82%); color: #172633; border-color: rgb(27 60 82 / 14%); }
+:root[data-theme="light"] .cinematic-home .quick-action-card strong { color: #172633; }
+:root[data-theme="light"] .cinematic-home .active-ride-actions .secondary-button { color: #172633; background: #fff; }
+
+
+/* V6 approved theme backgrounds: sedan visible in dark mode; bright car scene in light mode. */
+:root[data-theme="dark"] .cinematic-home::before {
+  background-image: url('../assets/urbanride-explore-city.png');
+  background-position: right center;
+  background-size: cover;
+  opacity: 1;
+}
+:root[data-theme="dark"] .explore-city-banner {
+  background-image: linear-gradient(90deg, rgb(3 8 12 / 52%), rgb(3 8 12 / 14%)), url('../assets/urbanride-night-city.png');
+  background-position: center 66%;
+  background-size: cover;
+}
+:root[data-theme="light"] .cinematic-home::before {
+  background-image: url('../assets/urbanride-city-light.png');
+  background-position: right center;
+  background-size: cover;
+  opacity: 1;
+}
+:root[data-theme="light"] .cinematic-home::after {
+  background: linear-gradient(90deg, rgb(247 251 255 / 70%) 0%, rgb(247 251 255 / 36%) 44%, rgb(247 251 255 / 4%) 100%),
+              linear-gradient(180deg, rgb(247 251 255 / 2%) 0%, rgb(247 251 255 / 0%) 66%, rgb(247 251 255 / 20%) 100%);
+}
+:root[data-theme="light"] .cinematic-home .cinematic-hero h1 { color: #10202d; text-shadow: 0 2px 16px rgb(255 255 255 / 28%); }
+:root[data-theme="light"] .cinematic-home .cinematic-hero p { color: #263b4b; text-shadow: none; }
+:root[data-theme="light"] .cinematic-home .home-active-ride {
+  background: rgb(255 255 255 / 34%) !important;
+  border-color: rgb(20 45 62 / 20%);
+  backdrop-filter: blur(5px);
+}
+:root[data-theme="light"] .explore-city-banner {
+  background-image: linear-gradient(90deg, rgb(3 8 12 / 52%), rgb(3 8 12 / 14%)), url('../assets/urbanride-night-city.png');
+}

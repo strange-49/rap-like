@@ -1,0 +1,5 @@
+
+@keyframes drawer-in { from { transform: translateX(36px); opacity: .65; } to { transform: translateX(0); opacity: 1; } }
+@keyframes car-drift { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
+@keyframes soft-pulse { 0%,100% { box-shadow: 0 0 0 0 rgb(16 200 120 / 20%); } 50% { box-shadow: 0 0 0 7px rgb(16 200 120 / 0%); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }

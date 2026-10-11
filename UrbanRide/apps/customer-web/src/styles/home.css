@@ -1,0 +1,506 @@
+
+.cinematic-home { position: relative; isolation: isolate; min-height: 100vh; padding: 120px clamp(18px, 3vw, 48px) 150px; overflow: clip; background: #080d11; }
+.cinematic-home::before { content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none; background: url('../assets/urbanride-night-city.png') center 54% / cover no-repeat; opacity: .94; transform: scale(1.02); }
+.cinematic-home::after { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, rgb(3 7 10 / 40%), rgb(4 9 12 / 24%) 58%, rgb(4 8 11 / 38%)), linear-gradient(180deg, rgb(2 6 9 / 8%) 5%, rgb(5 10 13 / 28%) 72%, #080d11 100%); }
+.home-page { display: grid; gap: 26px; width: min(1540px, 100%); margin: 0 auto; }
+.cinematic-hero { display: block; min-height: 155px; padding: 0; }
+.cinematic-hero .home-hero-copy { max-width: 720px; }
+.cinematic-hero h1 { color: #fff; font-size: clamp(2.2rem, 4.2vw, 3.35rem); font-weight: 800; letter-spacing: -.055em; margin: 8px 0 6px; text-shadow: 0 3px 30px rgb(0 0 0 / 30%); }
+.cinematic-hero p { color: #d1d9df; font-size: 1rem; margin: 0; }
+.book-ride-cta { margin-top: 22px; min-width: 210px; justify-content: space-between; border-radius: 14px; }
+.glass-card, .home-active-ride, .home-booking-nudge, .recent-rides-card, .mini-tracker { border: 1px solid var(--urban-line); border-radius: var(--urban-radius); background: var(--urban-panel); backdrop-filter: var(--urban-glass); box-shadow: var(--urban-shadow); }
+.home-active-ride { width: min(900px, 100%); padding: 20px; background: rgb(7 13 17 / 42%); }
+.active-ride-heading { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+.active-ride-heading > div:first-child { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.active-ride-heading .section-eyebrow { font-size: .88rem; }
+.status-live { color: var(--urban-green-bright); background: rgb(16 200 120 / 12%); border-color: transparent; }
+.arrival-summary { display: grid; gap: 2px; min-width: 120px; color: var(--urban-muted); font-size: .8rem; }
+.arrival-summary strong { font-size: 1.8rem; line-height: 1.1; color: var(--urban-white); font-family: 'Manrope', sans-serif; }
+.arrival-summary small { color: var(--urban-muted); }
+.ride-route-summary { display: grid; gap: 16px; margin: 24px 0; }
+.route-point { display: flex; align-items: center; gap: 13px; min-height: 36px; }
+.route-point > div { display: grid; gap: 3px; }
+.route-point strong { color: var(--urban-white); font-size: .94rem; }
+.route-point small { color: var(--urban-muted); font-size: .8rem; }
+.route-dot { display: block; width: 14px; height: 14px; flex: 0 0 14px; border: 4px solid var(--urban-green); border-radius: 50%; box-shadow: 0 0 0 7px rgb(16 200 120 / 10%); }
+.destination-point .route-dot, .destination-dot { border-color: var(--urban-red); box-shadow: 0 0 0 7px rgb(244 81 77 / 10%); }
+.active-ride-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.active-ride-actions button { min-width: 150px; }
+.danger-button { border-color: rgb(244 81 77 / 25%); background: rgb(244 81 77 / 13%); color: #ff6d68; }
+.home-booking-nudge { display: flex; align-items: center; gap: 18px; max-width: 850px; padding: 15px 18px; background: rgb(7 13 17 / 38%); }
+.home-booking-nudge h2 { color: var(--urban-white); font-size: 1.3rem; margin: 5px 0; }
+.home-booking-nudge p { color: var(--urban-muted); margin: 0; font-size: .9rem; }
+.booking-nudge-icon { display: grid; place-items: center; flex: 0 0 46px; height: 46px; border-radius: 15px; background: rgb(16 200 120 / 12%); color: var(--urban-green-bright); font-size: 1.5rem; }
+.home-booking-nudge .primary-button { margin-left: auto; white-space: nowrap; }
+.home-content-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr); align-items: start; gap: 14px; }
+.home-recent-rides { padding: 17px; background: rgb(7 13 17 / 42%); }
+.home-recent-rides h2 { color: var(--urban-white); margin: 5px 0 0; font-size: 1.25rem; }
+.card-heading-row { align-items: center; }
+.recent-ride-row { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; align-items: center; gap: 13px; padding: 15px 0; border-bottom: 1px solid var(--urban-line); }
+.recent-ride-row:last-of-type { border-bottom: 0; }
+.recent-ride-route-art { height: 54px; display: flex; align-items: center; justify-content: space-evenly; background: #e8efeb; border-radius: 11px; color: #0eaa62; }
+.recent-ride-route-art i { display: block; width: 22px; height: 2px; background: #0eaa62; transform: rotate(-35deg); }
+.recent-ride-copy { display: grid; gap: 4px; min-width: 0; }
+.recent-ride-copy strong { color: var(--urban-white); font-size: .9rem; overflow: hidden; text-overflow: ellipsis; }
+.recent-ride-copy small { color: var(--urban-muted); font-size: .75rem; }
+.recent-ride-copy .ride-status-pill { justify-self: start; font-size: .64rem; padding: 3px 7px; }
+.recent-ride-price strong { color: var(--urban-white); font-size: .95rem; }
+.mini-tracker { align-self: start; padding: 17px; min-width: 0; background: rgb(8 14 18 / 42%); }
+.mini-tracker-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mini-tracker-heading > strong { color: var(--urban-white); font-size: 1.25rem; }
+.mini-tracker-heading > strong span { color: var(--urban-muted); font-weight: 500; font-size: .95rem; }
+.live-indicator { display: inline-flex; align-items: center; gap: 6px; color: var(--urban-green-bright); font-size: .72rem; }
+.live-indicator i, .map-status i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--urban-green); box-shadow: 0 0 0 4px rgb(16 200 120 / 12%); }
+.mini-route-line { position: relative; display: flex; align-items: center; justify-content: space-between; height: 50px; margin: 10px 0; }
+.mini-route-line::before { content: ''; position: absolute; left: 8px; right: 8px; height: 4px; border-radius: 9px; background: linear-gradient(90deg, var(--urban-green) 0 58%, rgb(255 255 255 / 18%) 58%); }
+.mini-route-start, .mini-route-end { position: relative; z-index: 1; width: 14px; height: 14px; border-radius: 50%; border: 4px solid var(--urban-green); background: #08110c; }
+.mini-route-end { border-color: var(--urban-red); background: #1a0909; }
+.mini-car { z-index: 2; font-size: 1.65rem; filter: drop-shadow(0 4px 6px rgb(0 0 0 / 30%)); animation: car-drift 5s ease-in-out infinite alternate; }
+.mini-tracker-metrics { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--urban-line); padding-top: 15px; gap: 15px; }
+.mini-tracker-metrics > div { display: grid; gap: 4px; }
+.mini-tracker-metrics > div + div { border-left: 1px solid var(--urban-line); padding-left: 15px; }
+.mini-tracker-metrics small { color: var(--urban-muted); font-size: .72rem; }
+.mini-tracker-metrics strong { color: var(--urban-white); font-size: 1.2rem; }
+.tracker-details-link { margin-top: 12px; }
+.quick-actions-section { display: grid; gap: 10px; max-width: none; min-width: 0; }
+.quick-actions-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.quick-action-card { display: grid; justify-items: start; gap: 8px; padding: 13px; min-height: 82px; border: 1px solid var(--urban-line); border-radius: 15px; background: rgb(17 25 31 / 42%); color: var(--urban-white); text-decoration: none; text-align: left; transition: transform .2s, border-color .2s, background .2s; }
+.quick-action-card:hover { transform: translateY(-3px); border-color: rgb(16 200 120 / 55%); background: rgb(16 200 120 / 8%); }
+.quick-action-card > span { color: var(--urban-green-bright); font-size: 1.45rem; }
+.explore-city-fixed { position: fixed; z-index: 800; bottom: 12px; left: 16px; right: 16px; width: auto; }
+.explore-city-banner { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; min-height: 72px; padding: 10px 16px; overflow: hidden; text-align: left; color: #fff; border: 1px solid rgb(255 255 255 / 14%); border-radius: 19px; background: linear-gradient(90deg, rgb(4 12 15 / 78%), rgb(4 12 15 / 25%)), url('../assets/urbanride-night-city.png') center 66% / cover; box-shadow: 0 14px 44px rgb(0 0 0 / 36%); }
+.explore-map-icon { display: grid; place-items: center; flex: 0 0 46px; height: 46px; border-radius: 50%; background: var(--urban-green-dark); color: white; font-size: 1.4rem; }
+.explore-city-copy { display: grid; gap: 4px; position: relative; z-index: 1; }
+.explore-city-copy strong { font-size: 1rem; }
+.explore-city-copy small { color: #c4d0d6; font-size: .76rem; }
+.explore-city-car { margin-left: auto; font-size: 2rem; position: relative; z-index: 1; }
+.explore-city-arrow { display: grid; place-items: center; flex: 0 0 37px; height: 37px; border-radius: 50%; background: rgb(255 255 255 / 15%); position: relative; z-index: 1; }
+.home-footer-content { padding: 12px 0 35px; }
+.home-footer-heading { max-width: 650px; margin-bottom: 18px; }
+.home-footer-heading h2 { margin: 5px 0 7px; font-size: 1.6rem; color: var(--urban-white); }
+.home-footer-heading p { color: var(--urban-muted); margin: 0; max-width: 600px; }
+.home-footer-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.home-footer-cards article { padding: 22px; border: 1px solid var(--urban-line); border-radius: 18px; background: rgb(9 16 21 / 42%); backdrop-filter: var(--urban-glass); }
+.home-footer-cards article > span { color: var(--urban-green-bright); font-size: 1.5rem; }
+.home-footer-cards h3 { margin: 14px 0 7px; color: var(--urban-white); font-size: 1.05rem; }
+.home-footer-cards p { margin: 0 0 14px; color: var(--urban-muted); font-size: .86rem; }
+.home-footer-cards a { color: var(--urban-white); font-size: .85rem; font-weight: 700; text-decoration: none; }
+.urbanride-footer { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; border-top: 1px solid var(--urban-line); margin-top: 22px; padding-top: 20px; color: var(--urban-muted); }
+.urbanride-footer > div { display: grid; gap: 4px; }
+.urbanride-footer > div strong { color: var(--urban-white); font: 800 1.15rem 'Manrope', sans-serif; }
+.footer-brand-mark { color: var(--urban-green); }
+.urbanride-footer small { font-size: .72rem; }
+.urbanride-footer nav { display: flex; flex-wrap: wrap; gap: 15px; justify-content: flex-end; }
+.urbanride-footer nav a { color: var(--urban-muted); text-decoration: none; font-size: .76rem; }
+.home-payment-alert { max-width: 850px; }
+@media (max-width: 900px) { .home-content-grid { grid-template-columns: 1fr; } .mini-tracker { max-width: none; } .home-active-ride { width: 100%; } .cinematic-home { padding-top: 110px; } }
+@media (max-width: 600px) { .cinematic-home { padding: 100px 14px 155px; } .cinematic-hero { min-height: 150px; } .home-active-ride, .home-recent-rides, .mini-tracker { padding: 17px; border-radius: 18px; } .home-booking-nudge { align-items: flex-start; flex-wrap: wrap; padding: 17px; } .home-booking-nudge .primary-button { width: 100%; margin-left: 0; } .active-ride-heading { gap: 10px; } .arrival-summary { min-width: 95px; } .arrival-summary strong { font-size: 1.4rem; } .recent-ride-row { grid-template-columns: 48px minmax(0,1fr) auto; gap: 9px; } .recent-ride-route-art { height: 45px; } .quick-actions-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; } .quick-action-card { padding: 12px 10px; min-height: 84px; font-size: .78rem; } .explore-city-fixed { bottom: 8px; left: 8px; width: calc(100vw - 16px); } .explore-city-banner { min-height: 66px; padding: 9px 11px; gap: 10px; } .explore-map-icon { flex-basis: 38px; height: 38px; } .explore-city-copy strong { font-size: .88rem; } .explore-city-copy small { font-size: .67rem; } .explore-city-car { display: none; } .home-footer-cards { grid-template-columns: 1fr; } .urbanride-footer { grid-template-columns: 1fr; } .urbanride-footer nav { justify-content: flex-start; } }
+
+
+
+/* Keep the main dashboard spacious while allowing the document to scroll naturally. */
+.cinematic-home { min-height: 100vh; overflow-x: clip; overflow-y: visible; }
+.home-page { padding-bottom: 20px; }
+.explore-city-fixed { z-index: 800; }
+@media (min-width: 1200px) {
+  .home-page { gap: 22px; }
+  .cinematic-hero { min-height: 155px; }
+}
+
+
+/* Approved composition: visible city, translucent panels and compact lower-page marketing. */
+.home-page { padding-bottom: 112px; }
+.cinematic-hero { min-height: 174px; }
+.cinematic-hero .home-hero-copy { max-width: 520px; }
+.cinematic-hero h1 { font-size: clamp(2.35rem, 4vw, 3.5rem); }
+.glass-card, .recent-rides-card, .mini-tracker { background-color: rgb(7 13 17 / 42%); }
+.home-active-ride { background: rgb(7 13 17 / 40%); }
+.quick-actions-section > .section-eyebrow { font-size: .65rem; }
+.home-footer-content { padding: 10px 0 24px; }
+.home-footer-heading { margin-bottom: 10px; }
+.home-footer-heading h2 { font-size: 1.15rem; margin: 2px 0 4px; }
+.home-footer-heading p { font-size: .78rem; max-width: 560px; }
+.home-footer-cards { gap: 10px; }
+.home-footer-cards article { padding: 13px; border-radius: 13px; background: rgb(9 16 21 / 38%); }
+.home-footer-cards article > span { font-size: 1.1rem; }
+.home-footer-cards h3 { margin: 7px 0 4px; font-size: .88rem; }
+.home-footer-cards p { margin: 0 0 8px; font-size: .75rem; line-height: 1.35; }
+.home-footer-cards a { font-size: .75rem; }
+.urbanride-footer { margin-top: 14px; padding-top: 13px; gap: 12px; }
+.urbanride-footer nav { gap: 10px; }
+.urbanride-footer nav a, .urbanride-footer small { font-size: .68rem; }
+:root[data-theme="light"] .cinematic-home::after {
+  background: linear-gradient(90deg, rgb(244 249 246 / 28%), rgb(244 249 246 / 14%) 58%, rgb(244 249 246 / 26%)), linear-gradient(180deg, rgb(248 251 249 / 8%) 5%, rgb(248 251 249 / 30%) 72%, #f2f6f3 100%);
+}
+:root[data-theme="light"] .glass-card,
+:root[data-theme="light"] .home-active-ride,
+:root[data-theme="light"] .mini-tracker,
+:root[data-theme="light"] .home-footer-cards article { background: rgb(255 255 255 / 54%); }
+body:has(.ride-details-layer) .explore-city-fixed { right: min(456px, 38vw); }
+@media (max-width: 1050px) {
+  .home-content-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, .85fr); }
+  .quick-actions-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  .home-content-grid { grid-template-columns: 1fr; }
+  .quick-actions-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .explore-city-fixed { left: 8px; right: 8px; bottom: 8px; }
+  body:has(.ride-details-layer) .explore-city-fixed { right: 8px; }
+  .home-page { padding-bottom: 100px; }
+}
+@media (max-width: 600px) {
+  .cinematic-hero { min-height: 150px; }
+  .home-footer-heading h2 { font-size: 1rem; }
+  .home-footer-cards article { padding: 12px; }
+}
+
+.home-content-grid > .mini-tracker { grid-column: 2; }
+@media (max-width: 760px) { .home-content-grid > .mini-tracker { grid-column: 1; } }
+
+
+/* V4 reference alignment: compact ride card, four compact quick actions, readable footer. */
+.cinematic-home { padding-top: 96px; }
+.home-page { gap: 20px; padding-bottom: 24px; }
+.cinematic-hero { min-height: 132px; }
+.cinematic-hero h1 { font-size: clamp(2.1rem, 3.5vw, 3rem); margin-top: 6px; }
+.book-ride-cta { min-width: 190px; min-height: 48px; margin-top: 16px; }
+.home-active-ride {
+  width: min(760px, 100%);
+  padding: 17px 19px;
+  background: rgb(7 13 17 / 34%);
+  backdrop-filter: blur(8px);
+}
+.active-ride-heading { align-items: center; }
+.arrival-summary { min-width: 96px; }
+.arrival-summary strong { font-size: 1.45rem; }
+.ride-route-summary {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin: 15px 0;
+}
+.route-point { align-items: flex-start; gap: 10px; min-width: 0; }
+.route-point > div { min-width: 0; }
+.route-point strong { font-size: .84rem; }
+.route-point small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: .72rem;
+  line-height: 1.35;
+}
+.active-ride-actions { gap: 9px; }
+.active-ride-actions button { min-width: 130px; min-height: 40px; padding: 9px 14px; }
+.home-content-grid {
+  grid-template-columns: minmax(280px, .82fr) minmax(0, 1.18fr);
+  gap: 16px;
+}
+.home-recent-rides { padding: 16px; background: rgb(7 13 17 / 34%); }
+.home-recent-rides h2 { font-size: 1.15rem; }
+.recent-ride-row { grid-template-columns: 52px minmax(0,1fr) auto; gap: 10px; padding: 11px 0; }
+.recent-ride-route-art { height: 46px; }
+.quick-actions-section { gap: 9px; }
+.quick-actions-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.quick-action-card {
+  min-height: 108px;
+  padding: 12px 8px;
+  gap: 9px;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  background: rgb(7 13 17 / 32%);
+}
+.quick-action-card > span { font-size: 1.55rem; }
+.quick-action-card strong { font-size: .76rem; line-height: 1.25; }
+.mini-tracker { padding: 14px; background: rgb(7 13 17 / 34%); }
+.explore-city-banner {
+  background-image: linear-gradient(90deg, rgb(3 8 12 / 64%), rgb(3 8 12 / 18%)), url('../assets/urbanride-explore-city.png');
+  background-position: center 63%;
+  background-size: cover;
+}
+.explore-city-copy strong { font-size: 1.05rem; }
+.explore-city-copy small { font-size: .82rem; }
+.home-footer-content { padding: 8px 0 42px; }
+.home-footer-heading { margin-bottom: 12px; }
+.home-footer-heading h2 { font-size: 1.28rem; margin: 3px 0 6px; }
+.home-footer-heading p { font-size: .9rem; line-height: 1.5; max-width: 680px; }
+.home-footer-cards { gap: 12px; }
+.home-footer-cards article { padding: 15px 16px; background: rgb(7 13 17 / 34%); }
+.home-footer-cards article > span { font-size: 1.25rem; }
+.home-footer-cards h3 { font-size: .98rem; margin: 9px 0 6px; }
+.home-footer-cards p { font-size: .86rem; line-height: 1.5; margin-bottom: 10px; }
+.home-footer-cards a { font-size: .85rem; }
+.urbanride-footer { align-items: start; margin-top: 18px; padding-top: 16px; gap: 15px; }
+.urbanride-footer nav { gap: 13px; flex-wrap: wrap; }
+.urbanride-footer nav a, .urbanride-footer small { font-size: .78rem; line-height: 1.45; }
+.urbanride-footer > div strong { font-size: 1rem; }
+.urbanride-footer > div small { font-size: .78rem; }
+.explore-city-fixed { left: 16px; right: 16px; width: auto; bottom: 12px; }
+.home-page { padding-bottom: 116px; }
+body:has(.ride-details-layer) .home-active-ride { width: min(690px, calc(100% - 440px)); }
+body:has(.ride-details-layer) .home-content-grid { padding-right: 440px; }
+body:has(.ride-details-layer) .explore-city-fixed { right: 450px; }
+@media (max-width: 1100px) {
+  .home-content-grid { grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr); }
+  .quick-actions-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  body:has(.ride-details-layer) .home-active-ride { width: min(620px, calc(100% - 400px)); }
+  body:has(.ride-details-layer) .home-content-grid { padding-right: 400px; }
+  body:has(.ride-details-layer) .explore-city-fixed { right: 410px; }
+}
+@media (max-width: 760px) {
+  .cinematic-home { padding-top: 88px; }
+  .ride-route-summary { grid-template-columns: 1fr; gap: 10px; }
+  .home-content-grid { grid-template-columns: 1fr; }
+  .quick-actions-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .quick-action-card { min-height: 82px; }
+  body:has(.ride-details-layer) .home-active-ride { width: 100%; }
+  body:has(.ride-details-layer) .home-content-grid { padding-right: 0; }
+  body:has(.ride-details-layer) .explore-city-fixed { right: 8px; }
+  .home-footer-cards { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .quick-actions-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .home-footer-heading p { font-size: .86rem; }
+  .urbanride-footer nav { gap: 10px; }
+}
+
+
+/* V5 — match the approved two-theme City Discovery reference. Hero is the first screen; activity is below the fold. */
+.cinematic-home {
+  padding: 0 !important;
+  min-height: 100vh;
+  overflow: visible !important;
+  background: var(--urban-ink);
+  color: var(--urban-white);
+}
+.cinematic-home::before, .cinematic-home::after { display: none !important; }
+.cinematic-home > .cinematic-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 100svh;
+  padding: clamp(110px, 13vh, 150px) clamp(24px, 7.4vw, 124px) 92px;
+  margin: 0;
+  overflow: hidden;
+  background: #091522;
+}
+.cinematic-home > .cinematic-hero::before,
+.cinematic-home > .cinematic-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+.cinematic-home > .cinematic-hero::before {
+  background-image: url('../assets/urbanride-explore-city.png');
+  background-size: cover;
+  background-position: center 58%;
+  transform: scale(1.005);
+}
+.cinematic-home > .cinematic-hero::after {
+  z-index: -1;
+  background: linear-gradient(90deg, rgb(3 10 20 / 64%) 0%, rgb(3 10 20 / 37%) 34%, rgb(3 10 20 / 8%) 70%, rgb(3 10 20 / 3%) 100%), linear-gradient(0deg, rgb(3 8 13 / 30%), transparent 30%);
+}
+.cinematic-hero .home-hero-copy { max-width: 550px; width: 100%; }
+.cinematic-hero .section-eyebrow { font-size: .75rem; letter-spacing: .14em; }
+.cinematic-hero h1 { max-width: 550px; font-size: clamp(2.8rem, 4.5vw, 4rem); line-height: 1.08; margin: 12px 0 14px; color: #fff; text-shadow: 0 2px 22px rgb(0 0 0 / 20%); }
+.cinematic-hero p { color: rgb(255 255 255 / 88%); font-size: clamp(1rem, 1.3vw, 1.2rem); }
+.cinematic-hero .book-ride-cta { margin-top: 22px; min-width: 230px; min-height: 58px; padding: 0 24px; border-radius: 14px; font-size: 1rem; }
+.hero-scroll-cue { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: grid; justify-items: center; gap: 7px; border: 0; background: transparent; color: rgb(255 255 255 / 85%); cursor: pointer; font: inherit; font-size: .76rem; }
+.hero-scroll-cue i { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgb(255 255 255 / 48%); border-radius: 50%; font-style: normal; animation: hero-scroll-bob 1.8s ease-in-out infinite; }
+@keyframes hero-scroll-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+/* Lower sections are normal document content: scroll to reach them; nothing crowds the hero. */
+.cinematic-home > .home-active-ride,
+.cinematic-home > .home-content-grid,
+.cinematic-home > .home-footer-content,
+.cinematic-home > .urbanride-footer,
+.cinematic-home > .home-payment-alert { width: min(1440px, calc(100% - 48px)); margin-left: auto; margin-right: auto; }
+.cinematic-home > .home-active-ride { margin-top: 28px; }
+.cinematic-home > .home-content-grid { margin-top: 26px; }
+.cinematic-home > .explore-city-fixed { position: relative !important; inset: auto !important; width: min(1440px, calc(100% - 48px)) !important; margin: 30px auto 0; z-index: 1; }
+.cinematic-home > .explore-city-fixed .explore-city-banner { min-height: 92px; background-image: linear-gradient(90deg, rgb(3 8 12 / 58%), rgb(3 8 12 / 8%)), url('../assets/urbanride-night-city.png'); background-position: center 62%; }
+.cinematic-home > .home-footer-content { padding-top: 26px; }
+.cinematic-home > .urbanride-footer { margin-bottom: 28px; }
+:root[data-theme="light"] .cinematic-home { background: #f4f8fb; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero { background: #dcebf5; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero::before { background-image: url('../assets/urbanride-city-light.png'); background-position: center 58%; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero::after { background: linear-gradient(90deg, rgb(248 252 255 / 76%) 0%, rgb(248 252 255 / 54%) 31%, rgb(248 252 255 / 8%) 67%, transparent 100%), linear-gradient(0deg, rgb(248 252 255 / 10%), transparent 35%); }
+:root[data-theme="light"] .cinematic-hero h1 { color: #101b26; text-shadow: none; }
+:root[data-theme="light"] .cinematic-hero p { color: #344a5c; }
+:root[data-theme="light"] .hero-scroll-cue { color: #213a4b; }
+:root[data-theme="light"] .hero-scroll-cue i { border-color: rgb(23 45 60 / 42%); }
+:root[data-theme="light"] .cinematic-home > .explore-city-fixed .explore-city-banner { background-image: linear-gradient(90deg, rgb(3 8 12 / 52%), rgb(3 8 12 / 6%)), url('../assets/urbanride-night-city.png'); }
+@media (max-width: 760px) {
+  .cinematic-home > .cinematic-hero { min-height: 100svh; padding: 115px 24px 88px; }
+  .cinematic-hero h1 { font-size: clamp(2.6rem, 11vw, 3.5rem); }
+  .cinematic-home > .home-active-ride,
+  .cinematic-home > .home-content-grid,
+  .cinematic-home > .home-footer-content,
+  .cinematic-home > .urbanride-footer,
+  .cinematic-home > .home-payment-alert,
+  .cinematic-home > .explore-city-fixed { width: calc(100% - 28px) !important; }
+  .cinematic-home > .home-content-grid { margin-top: 20px; }
+}
+
+
+/* V6: approved car composition, legible glass surfaces, no opaque home ride panel. */
+.cinematic-home::before {
+  background-image: url('../assets/urbanride-explore-city.png');
+  background-position: right center;
+  background-size: cover;
+  opacity: 1;
+}
+.cinematic-home::after {
+  background: linear-gradient(90deg, rgb(2 10 20 / 58%) 0%, rgb(2 10 20 / 22%) 48%, rgb(2 10 20 / 8%) 100%),
+              linear-gradient(180deg, rgb(2 10 20 / 8%) 0%, rgb(2 10 20 / 6%) 60%, rgb(2 10 20 / 52%) 100%);
+}
+.home-active-ride {
+  background: rgb(6 13 19 / 30%) !important;
+  border-color: rgb(255 255 255 / 18%);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 14px 38px rgb(0 0 0 / 12%);
+}
+.home-active-ride .route-point small { max-width: 100%; }
+
+
+/* FINAL FIX — same edge-to-edge hero geometry in both themes, with the matched sedan assets. */
+.cinematic-home {
+  width: 100% !important; max-width: none !important;
+  margin: 0 !important; padding: 0 !important;
+  min-height: 100vh; min-height: 100svh;
+  overflow: clip !important;
+  border-radius: 0 !important;
+}
+.cinematic-home > .cinematic-hero {
+  box-sizing: border-box; position: relative; isolation: isolate;
+  display: flex; width: 100% !important; max-width: none !important;
+  height: 100vh; height: 100svh; min-height: 560px;
+  margin: 0 !important; padding: clamp(112px, 14vh, 150px) clamp(24px, 7.4vw, 124px) 88px !important;
+  border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+  overflow: hidden; background: #071321;
+}
+.cinematic-home > .cinematic-hero::before {
+  content: ''; display: block !important; position: absolute; inset: 0; z-index: -2;
+  background-image: url('../assets/urbanride-night-city.png') !important;
+  background-repeat: no-repeat; background-size: cover; background-position: right center;
+  transform: none !important; opacity: 1 !important;
+}
+.cinematic-home > .cinematic-hero::after {
+  content: ''; display: block !important; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgb(3 10 20 / 58%) 0%, rgb(3 10 20 / 34%) 38%, rgb(3 10 20 / 4%) 76%),
+              linear-gradient(0deg, rgb(3 8 13 / 20%), transparent 32%) !important;
+  pointer-events: none;
+}
+.cinematic-home > .cinematic-hero .home-hero-copy { position: relative; z-index: 1; width: 100%; max-width: 560px; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero { background: #dcebf5; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero::before {
+  background-image: url('../assets/urbanride-city-light.png') !important;
+  background-position: right center;
+}
+:root[data-theme="light"] .cinematic-home > .cinematic-hero::after {
+  background: linear-gradient(90deg, rgb(248 252 255 / 76%) 0%, rgb(248 252 255 / 52%) 34%, rgb(248 252 255 / 5%) 72%, transparent 100%),
+              linear-gradient(0deg, rgb(248 252 255 / 8%), transparent 35%) !important;
+}
+:root[data-theme="light"] .cinematic-home > .cinematic-hero h1 { color: #101b26 !important; text-shadow: none !important; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero p { color: #344a5c !important; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .hero-scroll-cue { color: #213a4b; }
+@media (max-width: 760px) {
+  .cinematic-home > .cinematic-hero { min-height: 100svh; height: 100svh; padding: 112px 24px 88px !important; }
+  .cinematic-home > .cinematic-hero .home-hero-copy { max-width: 100%; }
+}
+
+
+/* V8 final hero: true viewport edge-to-edge; day/night use the same sedan composition. */
+.cinematic-home { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; min-height: 100svh; overflow: visible !important; border-radius: 0 !important; }
+.cinematic-home > .cinematic-hero { box-sizing: border-box !important; display: flex !important; flex-direction: column !important; align-items: flex-start !important; justify-content: center !important; gap: 18px; position: relative !important; width: 100% !important; height: 100svh !important; min-height: 650px !important; margin: 0 !important; padding: 112px clamp(24px, 7.4vw, 124px) 86px !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: hidden !important; background: #071321 !important; }
+.cinematic-home > .cinematic-hero::before { content: '' !important; display: block !important; position: absolute !important; inset: 0 !important; z-index: -2 !important; background-image: url('../assets/urbanride-night-car-hero.png') !important; background-repeat: no-repeat !important; background-size: cover !important; background-position: center center !important; transform: none !important; opacity: 1 !important; }
+.cinematic-home > .cinematic-hero::after { content: '' !important; display: block !important; position: absolute !important; inset: 0 !important; z-index: -1 !important; background: linear-gradient(90deg, rgb(3 10 20 / 58%) 0%, rgb(3 10 20 / 34%) 38%, rgb(3 10 20 / 4%) 76%), linear-gradient(0deg, rgb(3 8 13 / 22%), transparent 35%) !important; pointer-events: none !important; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero { background: #dcebf5 !important; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero::before { background-image: url('../assets/urbanride-city-light.png') !important; background-position: center center !important; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero::after { background: linear-gradient(90deg, rgb(248 252 255 / 76%) 0%, rgb(248 252 255 / 52%) 34%, rgb(248 252 255 / 5%) 72%, transparent 100%), linear-gradient(0deg, rgb(248 252 255 / 8%), transparent 35%) !important; }
+.cinematic-home > .cinematic-hero .home-hero-copy { position: relative !important; z-index: 2 !important; width: 100% !important; max-width: 560px !important; flex: 0 0 auto; }
+.cinematic-home > .cinematic-hero .home-active-ride-overlay { position: relative !important; z-index: 2 !important; width: min(900px, 100%) !important; max-width: 900px !important; margin: 8px 0 0 !important; padding: 18px 20px !important; border: 1px solid rgb(255 255 255 / 25%) !important; border-radius: 20px !important; background: rgb(8 15 21 / 42%) !important; color: #fff !important; backdrop-filter: blur(12px) saturate(125%) !important; -webkit-backdrop-filter: blur(12px) saturate(125%) !important; box-shadow: 0 16px 44px rgb(0 0 0 / 20%) !important; }
+.cinematic-home > .cinematic-hero .home-active-ride-overlay .section-eyebrow, .cinematic-home > .cinematic-hero .home-active-ride-overlay strong { color: #fff !important; }
+.cinematic-home > .cinematic-hero .home-active-ride-overlay small, .cinematic-home > .cinematic-hero .home-active-ride-overlay .arrival-summary span { color: rgb(255 255 255 / 78%) !important; }
+.cinematic-home > .cinematic-hero .home-active-ride-overlay .secondary-button { background: rgb(255 255 255 / 12%) !important; border-color: rgb(255 255 255 / 25%) !important; color: #fff !important; backdrop-filter: blur(8px); }
+.cinematic-home > .cinematic-hero .home-active-ride-overlay .danger-button { background: rgb(220 38 38 / 22%) !important; border-color: rgb(248 113 113 / 45%) !important; color: #fff !important; }
+.cinematic-home > .cinematic-hero .hero-scroll-cue { z-index: 3; color: rgb(255 255 255 / 90%) !important; }
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .home-active-ride-overlay { background: rgb(16 30 40 / 48%) !important; border-color: rgb(255 255 255 / 34%) !important; }
+@media (max-height: 800px) and (min-width: 761px) { .cinematic-home > .cinematic-hero { min-height: 650px !important; padding-top: 90px !important; padding-bottom: 64px !important; } .cinematic-home > .cinematic-hero .home-active-ride-overlay { padding: 13px 16px !important; } }
+@media (max-width: 760px) { .cinematic-home > .cinematic-hero { height: auto !important; min-height: 100svh !important; padding: 112px 20px 78px !important; justify-content: center !important; } .cinematic-home > .cinematic-hero .home-active-ride-overlay { padding: 15px !important; } .cinematic-home > .cinematic-hero .home-active-ride-overlay .ride-route-summary { grid-template-columns: 1fr !important; } }
+
+
+/* Active ride hero: keep the existing details card in place and move the
+   route line/car tracker beside it over the same hero background. */
+.cinematic-home > .cinematic-hero .home-ride-hero-row {
+  position: static;
+  display: block;
+  width: 100%;
+}
+.cinematic-home > .cinematic-hero .home-active-ride-overlay {
+  background: rgb(8 15 21 / 42%) !important;
+  backdrop-filter: blur(8px) saturate(118%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(118%) !important;
+}
+ :root[data-theme="light"] .cinematic-home > .cinematic-hero .home-active-ride-overlay {
+  background: rgb(8 15 21 / 42%) !important;
+  color: #fff !important;
+}
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .home-hero-mini-tracker,
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .home-hero-mini-tracker * {
+  color: #fff !important;
+}
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .home-hero-mini-tracker {
+  background: rgb(8 15 21 / 42%) !important;
+  border-color: rgb(255 255 255 / 26%) !important;
+}
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .home-hero-mini-tracker .mini-tracker-metrics small,
+:root[data-theme="light"] .cinematic-home > .cinematic-hero .home-hero-mini-tracker .mini-tracker-heading span {
+  color: rgb(255 255 255 / 78%) !important;
+}
+.cinematic-home > .cinematic-hero .home-hero-mini-tracker {
+  position: absolute;
+  z-index: 2;
+  right: clamp(20px, 2.2vw, 36px);
+  top: 53%;
+  transform: translateY(-50%);
+  width: min(300px, 25vw);
+  padding: 16px;
+  background: rgb(8 15 21 / 42%) !important;
+  border-color: rgb(255 255 255 / 26%) !important;
+  color: #fff !important;
+  backdrop-filter: blur(8px) saturate(118%);
+  -webkit-backdrop-filter: blur(8px) saturate(118%);
+}
+.cinematic-home > .cinematic-hero .home-hero-mini-tracker .mini-tracker-heading strong,
+.cinematic-home > .cinematic-hero .home-hero-mini-tracker .mini-tracker-metrics strong {
+  color: #fff;
+}
+.cinematic-home > .cinematic-hero .home-hero-mini-tracker .mini-tracker-heading span,
+.cinematic-home > .cinematic-hero .home-hero-mini-tracker .mini-tracker-metrics small {
+  color: rgb(255 255 255 / 76%);
+}
+@media (max-width: 1100px) {
+  .cinematic-home > .cinematic-hero .home-hero-mini-tracker { display: none; }
+}
+@media (max-width: 760px) {
+  .cinematic-home > .cinematic-hero .home-active-ride-overlay { background: rgb(8 15 21 / 32%) !important; }
+}
+
+
+/* V11: keep the hero focused on the active ride card. Put the route tracker
+   in the scrollable content below the hero to avoid overlapping the sedan. */
+.cinematic-home > .cinematic-hero .home-hero-mini-tracker { display: none !important; }
+.below-hero-tracker-wrap { width: min(760px, calc(100% - 48px)); margin: 0 24px 32px auto; position: relative; z-index: 1; }
+.below-hero-tracker { width: 100%; max-width: 760px; }
+:root[data-theme="light"] .below-hero-tracker { background: rgb(255 255 255 / 92%); border-color: rgb(23 54 72 / 18%); color: #172633; }
+:root[data-theme="light"] .below-hero-tracker .mini-tracker-heading > strong,
+:root[data-theme="light"] .below-hero-tracker .mini-tracker-metrics strong { color: #172633; }
+:root[data-theme="light"] .below-hero-tracker .mini-tracker-heading > strong span,
+:root[data-theme="light"] .below-hero-tracker .mini-tracker-metrics small { color: #53697a; }
+@media (max-width: 760px) { .below-hero-tracker-wrap { width: calc(100% - 28px); margin: 0 14px 24px; } }

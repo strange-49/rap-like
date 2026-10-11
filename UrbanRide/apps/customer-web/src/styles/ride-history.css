@@ -1,0 +1,110 @@
+
+.ride-history-page { min-height: 100vh; padding: 148px clamp(16px, 3vw, 42px) 42px; color: var(--text); background: var(--page-bg); }
+.ride-history-header { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+.ride-history-header h1 { margin:7px 0 6px; font-size:clamp(2rem,3.4vw,3rem); letter-spacing:-.045em; }
+.ride-history-header p { margin:0; color:var(--text-muted); }
+.ride-history-header-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.ride-history-header-actions a { text-decoration:none; }
+.ride-history-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:22px 0; }
+.ride-history-summary article { display:flex; align-items:center; gap:13px; min-width:0; padding:17px; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+.ride-history-summary-icon { display:grid; place-items:center; width:43px; height:43px; flex:0 0 43px; border-radius:13px; background:var(--accent-soft); color:var(--accent); font-size:1.25rem; }
+.ride-history-summary article div { display:grid; gap:4px; }
+.ride-history-summary small { color:var(--text-muted); font-size:.78rem; }
+.ride-history-summary strong { color:var(--text); font-size:1.45rem; }
+.ride-history-list-panel { border:1px solid var(--border); border-radius:20px; background:var(--surface); overflow:hidden; }
+.ride-history-list-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:22px; border-bottom:1px solid var(--border); }
+.ride-history-list-heading h2 { margin:0 0 5px; font-size:1.15rem; }
+.ride-history-list-heading p { margin:0; color:var(--text-muted); font-size:.84rem; }
+.ride-history-filters { display:flex; flex-wrap:wrap; gap:6px; padding:4px; border:1px solid var(--border); border-radius:12px; background:var(--surface-soft); }
+.ride-history-filters button { border:0; border-radius:8px; padding:8px 10px; background:transparent; color:var(--text-muted); font-size:.77rem; font-weight:700; cursor:pointer; }
+.ride-history-filters button.is-selected { color:var(--accent-contrast, var(--text)); background:var(--accent-soft); box-shadow:inset 0 0 0 1px var(--border); }
+.ride-history-items { display:grid; }
+.ride-history-item { display:grid; grid-template-columns:48px minmax(0,1fr) auto; align-items:start; gap:15px; padding:20px 22px; border-bottom:1px solid var(--border); }
+.ride-history-item:last-child { border-bottom:0; }
+.ride-history-item-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:14px; background:var(--surface-soft); font-size:1.35rem; }
+.ride-history-item-main { min-width:0; }
+.ride-history-item-title { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.ride-history-item-title > strong { font-size:.98rem; }
+.ride-history-status { display:inline-flex; align-items:center; border-radius:99px; padding:4px 8px; background:var(--surface-soft); border:1px solid var(--border); color:var(--text-muted); font-size:.68rem; font-weight:800; text-transform:capitalize; }
+.ride-history-status.status-completed { color:#0a9661; background:rgba(16,200,120,.1); border-color:rgba(16,200,120,.25); }
+.ride-history-status.status-cancelled { color:#d94b54; background:rgba(217,75,84,.09); border-color:rgba(217,75,84,.25); }
+.ride-history-date { display:block; margin-top:5px; color:var(--text-muted); font-size:.76rem; }
+.ride-history-route { display:grid; gap:8px; margin-top:13px; color:var(--text); font-size:.82rem; min-width:0; }
+.ride-history-route-stop { display:grid; grid-template-columns:9px minmax(0,1fr); align-items:start; column-gap:9px; min-width:0; }
+.ride-history-route-stop > span:last-child { min-width:0; overflow-wrap:anywhere; word-break:normal; line-height:1.5; }
+.route-dot { display:block; width:8px; height:8px; margin-top:5px; border-radius:50%; }
+.route-dot-start { background:var(--accent); }
+.route-dot-end { background:#e2535b; }
+.ride-history-item-meta { display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; color:var(--text-muted); font-size:.73rem; }
+.ride-history-fare { display:grid; gap:5px; text-align:right; white-space:nowrap; }
+.ride-history-fare small { color:var(--text-muted); font-size:.72rem; }
+.ride-history-fare strong { font-size:1.05rem; }
+.ride-history-state { display:grid; justify-items:center; align-content:center; gap:9px; min-height:220px; padding:30px; text-align:center; }
+.ride-history-state p { max-width:500px; margin:0; color:var(--text-muted); line-height:1.6; }
+.ride-history-state h3 { margin:0; }
+.ride-history-state .primary-button { margin-top:8px; text-decoration:none; }
+.ride-history-state.is-error { color:var(--text); }
+.ride-history-state.is-error p { overflow-wrap:anywhere; }
+.ride-history-empty-icon { display:grid; place-items:center; width:48px; height:48px; border-radius:15px; background:var(--accent-soft); color:var(--accent); font-size:1.5rem; }
+.ride-history-footer { display:flex; justify-content:space-between; gap:15px; margin-top:20px; color:var(--text-muted); font-size:.8rem; }
+.ride-history-footer a { color:var(--accent); text-decoration:none; font-weight:700; }
+@media(max-width:900px) { .ride-history-header, .ride-history-list-heading { align-items:stretch; flex-direction:column; } .ride-history-header-actions { justify-content:flex-start; } }
+@media(max-width:620px) { .ride-history-page { padding:20px 13px 30px; } .ride-history-summary { grid-template-columns:1fr; gap:9px; margin:15px 0; } .ride-history-summary article { padding:12px; } .ride-history-list-heading { padding:17px; } .ride-history-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .ride-history-item { grid-template-columns:38px minmax(0,1fr); gap:11px; padding:16px 13px; } .ride-history-item-icon { width:38px; height:38px; font-size:1.1rem; } .ride-history-fare { grid-column:2; display:flex; justify-content:space-between; text-align:left; white-space:normal; padding-top:9px; } .ride-history-footer { flex-direction:column; } }
+
+
+/* Ride history page fixes: clear the floating global header and keep route text readable. */
+.ride-history-page .secondary-button { color: var(--text); background: var(--surface); border: 1px solid var(--border); }
+.ride-history-page .secondary-button:hover:not(:disabled) { background: var(--surface-soft); }
+.ride-history-page .primary-button { color: #062014; text-decoration: none; }
+.ride-history-page .ride-history-filters button { color: var(--text-muted); }
+.ride-history-page .ride-history-filters button.is-selected { color: var(--text); background: var(--accent-soft); border: 1px solid var(--border); }
+.ride-history-page .ride-history-item-main,
+.ride-history-page .ride-history-route-stop { min-width: 0; }
+@media (max-width: 760px) {
+  .ride-history-page { padding-top: 92px; }
+  .ride-history-header { align-items: stretch; }
+  .ride-history-header-actions { width: 100%; }
+  .ride-history-header-actions > * { flex: 1 1 auto; justify-content: center; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { .ride-history-page * { scroll-behavior: auto !important; } }
+
+
+/* V20 hard fix: isolate ride-history route labels from global span/layout rules. */
+.ride-history-page .ride-history-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+}
+.ride-history-page .ride-history-route-stop {
+  display: grid !important;
+  grid-template-columns: 9px minmax(0, 1fr) !important;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+.ride-history-page .ride-history-route-address {
+  display: block !important;
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal !important;
+  line-height: 1.5;
+}
+.ride-history-page .ride-history-route-stop > .route-dot {
+  grid-column: 1;
+  grid-row: 1;
+}
+.ride-history-page .ride-history-header {
+  position: relative;
+  z-index: 0;
+  clear: both;
+}
+@media (max-width: 760px) {
+  .ride-history-page { padding-top: 124px; }
+}

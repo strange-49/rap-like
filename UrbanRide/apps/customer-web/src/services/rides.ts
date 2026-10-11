@@ -19,6 +19,14 @@ export type CreatedRide = {
   estimatedFare: number | null
   finalFare?: number | null
   riderId?: string | null
+  rideType?: 'bike' | 'auto' | 'cab' | null
+  pickupAddress?: string | null
+  dropAddress?: string | null
+  pickupLatitude?: number | null
+  pickupLongitude?: number | null
+  dropLatitude?: number | null
+  dropLongitude?: number | null
+  estimatedDistance?: number | null
   requestedAt?: string
   assignedAt?: string | null
   startedAt?: string | null
@@ -37,6 +45,14 @@ function mapRide(ride: {
   estimatedFare: number | string | null
   finalFare?: number | string | null
   riderId?: string | null
+  rideType?: 'bike' | 'auto' | 'cab' | null
+  pickupAddress?: string | null
+  dropAddress?: string | null
+  pickupLatitude?: number | null
+  pickupLongitude?: number | null
+  dropLatitude?: number | null
+  dropLongitude?: number | null
+  estimatedDistance?: number | null
   requestedAt?: string
   assignedAt?: string | null
   startedAt?: string | null
@@ -57,6 +73,14 @@ function mapRide(ride: {
         : Number(ride.estimatedFare),
     finalFare: ride.finalFare == null ? null : Number(ride.finalFare),
     riderId: ride.riderId,
+    rideType: ride.rideType ?? null,
+    pickupAddress: ride.pickupAddress ?? null,
+    dropAddress: ride.dropAddress ?? null,
+    pickupLatitude: ride.pickupLatitude ?? null,
+    pickupLongitude: ride.pickupLongitude ?? null,
+    dropLatitude: ride.dropLatitude ?? null,
+    dropLongitude: ride.dropLongitude ?? null,
+    estimatedDistance: ride.estimatedDistance ?? null,
     requestedAt: ride.requestedAt,
     assignedAt: ride.assignedAt,
     startedAt: ride.startedAt,

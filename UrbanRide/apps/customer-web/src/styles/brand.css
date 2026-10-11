@@ -1,0 +1,29 @@
+.urbanride-logo-lockup { display: inline-flex; align-items: center; gap: 10px; min-width: 0; color: inherit; text-decoration: none; }
+.urbanride-logo-symbol { display: inline-grid; place-items: center; width: var(--urbanride-logo-size, 38px); height: var(--urbanride-logo-size, 38px); flex: 0 0 var(--urbanride-logo-size, 38px); filter: drop-shadow(0 3px 9px rgb(16 200 120 / 16%)); }
+.urbanride-logo-symbol svg { display: block; width: 100%; height: 100%; }
+.urbanride-logo-type { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.urbanride-wordmark { color: inherit; font-family: 'Manrope', 'DM Sans', sans-serif; font-weight: 800; letter-spacing: -.055em; line-height: 1.05; white-space: nowrap; }
+.urbanride-wordmark-r { color: var(--urban-green-bright, #14e08a); }
+.urbanride-logo-tagline { color: var(--urban-muted, #b2bdc6); font-size: .77rem; font-weight: 500; letter-spacing: 0; line-height: 1.2; }
+.sidebar-brand .urbanride-logo-lockup { gap: 8px; }
+.sidebar-brand .urbanride-wordmark { font-size: .96rem; }
+.customer-brand .urbanride-logo-lockup { gap: 10px; }
+.customer-brand .urbanride-wordmark { font-size: 1.12rem; }
+.customer-brand .urbanride-logo-tagline { display: none; }
+.booking-brand .urbanride-logo-lockup { gap: 9px; }
+.booking-brand .urbanride-logo-symbol { --urbanride-logo-size: 30px !important; }
+.booking-brand .urbanride-wordmark { font-size: 1.06rem; }
+.drawer-footer .urbanride-logo-lockup { gap: 10px; }
+.drawer-footer .urbanride-logo-type { display: inline-flex; }
+.settings-page-footer .urbanride-logo-symbol { --urbanride-logo-size: 34px !important; }
+.settings-page-footer .urbanride-wordmark { font-size: 1rem; }
+.urbanride-footer-brand .urbanride-wordmark { font-size: 1.12rem; }
+.urbanride-footer-brand .urbanride-logo-tagline { display: none; }
+.ride-history-footer .urbanride-wordmark { font-size: .9rem; }
+@media (max-width: 650px) { .auth-brand-header .urbanride-logo-symbol { --urbanride-logo-size: 48px !important; } .auth-brand-header .urbanride-wordmark { font-size: 1.8rem; } .auth-brand-header .urbanride-logo-tagline { font-size: .7rem; } }
+
+.sidebar-brand .urbanride-logo-type { display: inline-flex; }
+.urbanride-footer-brand { display: grid; justify-items: start; gap: 7px; }
+.urbanride-footer-brand > small { color: var(--urban-muted); }
+.settings-page-footer > .urbanride-logo-lockup { margin-right: auto; }
+.ride-history-footer > .urbanride-logo-lockup { color: var(--urban-white); }

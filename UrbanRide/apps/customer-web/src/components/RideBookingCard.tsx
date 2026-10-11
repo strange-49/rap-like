@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import type {
   LocationSelection,
@@ -18,53 +19,51 @@ import { RideTypeSelector } from './RideTypeSelector'
 
 type RideBookingCardProps = {
   onRideCreated: (ride: CreatedRide) => void
+  onLocationsChange?: (
+    pickup: LocationSelection | null,
+    drop: LocationSelection | null,
+  ) => void
   disabled?: boolean
 }
 
 export function RideBookingCard({
   onRideCreated,
+  onLocationsChange,
   disabled = false,
 }: RideBookingCardProps) {
   const [pickupQuery, setPickupQuery] = useState('')
   const [dropQuery, setDropQuery] = useState('')
-
   const [pickup, setPickup] = useState<LocationSelection | null>(null)
   const [drop, setDrop] = useState<LocationSelection | null>(null)
-
   const [rideType, setRideType] = useState<RideType | ''>('')
-  const [fareEstimate, setFareEstimate] =
-    useState<FareEstimate | null>(null)
+  const [fareEstimate, setFareEstimate] = useState<FareEstimate | null>(null)
   const [loadingEstimate, setLoadingEstimate] = useState(false)
-
-  const [createdRide, setCreatedRide] =
-    useState<CreatedRide | null>(null)
-
+  const [createdRide, setCreatedRide] = useState<CreatedRide | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  const [booking, setBooking] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
     if (!pickup || !drop || !rideType) {
       setFareEstimate(null)
+      setLoadingEstimate(false)
       return
     }
-
-    const selectedPickup = pickup
-    const selectedDrop = drop
-    const selectedRideType = rideType
 
     let cancelled = false
 
     async function loadFareEstimate() {
-      try {
-        setLoadingEstimate(true)
-        setMessage('')
+      setLoadingEstimate(true)
+      setFareEstimate(null)
+      setMessage('')
 
+      try {
         const estimate = await getFareEstimate(
-          selectedPickup.latitude,
-          selectedPickup.longitude,
-          selectedDrop.latitude,
-          selectedDrop.longitude,
-          selectedRideType,
+          pickup!.latitude,
+          pickup!.longitude,
+          drop!.latitude,
+          drop!.longitude,
+          rideType as RideType,
         )
 
         if (!cancelled) {
@@ -73,7 +72,7 @@ export function RideBookingCard({
       } catch {
         if (!cancelled) {
           setFareEstimate(null)
-          setMessage('Unable to calculate fare estimate.')
+          setMessage('Unable to calculate fare estimate. Please try again.')
         }
       } finally {
         if (!cancelled) {
@@ -82,7 +81,7 @@ export function RideBookingCard({
       }
     }
 
-    loadFareEstimate()
+    void loadFareEstimate()
 
     return () => {
       cancelled = true
@@ -90,17 +89,15 @@ export function RideBookingCard({
   }, [pickup, drop, rideType])
 
   async function handleBookRide() {
+    if (disabled || booking) return
+
     if (!pickup) {
-      setMessage(
-        'Please select your pickup location from the suggestions.',
-      )
+      setMessage('Please select your pickup location from the suggestions.')
       return
     }
 
     if (!drop) {
-      setMessage(
-        'Please select your destination from the suggestions.',
-      )
+      setMessage('Please select your destination from the suggestions.')
       return
     }
 
@@ -110,6 +107,9 @@ export function RideBookingCard({
     }
 
     try {
+      setBooking(true)
+      setMessage('')
+
       const rideRequest: RideRequest = {
         pickup,
         drop,
@@ -120,20 +120,18 @@ export function RideBookingCard({
 
       setCreatedRide(ride)
       onRideCreated(ride)
-      setMessage('Ride request created successfully.')
+      setMessage('Your ride request was created successfully.')
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Ride request failed.',
+        error instanceof Error ? error.message : 'Ride request failed.',
       )
+    } finally {
+      setBooking(false)
     }
   }
 
   async function handleCancelRide() {
-    if (!createdRide) {
-      return
-    }
+    if (!createdRide || cancelling) return
 
     try {
       setCancelling(true)
@@ -146,9 +144,7 @@ export function RideBookingCard({
       setMessage('Ride cancelled successfully.')
     } catch (error) {
       setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Ride cancellation failed.',
+        error instanceof Error ? error.message : 'Ride cancellation failed.',
       )
     } finally {
       setCancelling(false)
@@ -159,95 +155,152 @@ export function RideBookingCard({
     setPickupQuery(value)
     setPickup(null)
     setFareEstimate(null)
+    setMessage('')
+    onLocationsChange?.(null, drop)
   }
 
   function handleDropChange(value: string) {
     setDropQuery(value)
     setDrop(null)
     setFareEstimate(null)
+    setMessage('')
+    onLocationsChange?.(pickup, null)
   }
 
   function handlePickupSelect(location: LocationSelection) {
     setPickup(location)
     setPickupQuery(location.address)
+    setMessage('')
+    onLocationsChange?.(location, drop)
   }
 
   function handleDropSelect(location: LocationSelection) {
     setDrop(location)
     setDropQuery(location.address)
+    setMessage('')
+    onLocationsChange?.(pickup, location)
   }
 
   const canCancel =
     createdRide !== null &&
-    (createdRide.status === 'REQUESTED' ||
-      createdRide.status === 'ASSIGNED' ||
-      createdRide.status === 'DRIVER_ARRIVING')
+    ['REQUESTED', 'ASSIGNED', 'DRIVER_ARRIVING'].includes(
+      createdRide.status,
+    )
+
+  const canBook =
+    !disabled &&
+    !booking &&
+    !(
+      createdRide !== null &&
+      !['COMPLETED', 'CANCELLED'].includes(createdRide.status)
+    )
 
   return (
-    <section>
-      <h3>Where are you going?</h3>
+    <section className="booking-card">
+      <div className="section-eyebrow">YOUR NEXT JOURNEY</div>
+      <h2 className="booking-card-title">Where are you going?</h2>
+      <p className="muted-copy">
+        Choose your pickup and destination to plan your ride.
+      </p>
 
-      <LocationInput
-        label="Pickup"
-        placeholder="Enter pickup location"
-        value={pickupQuery}
-        onChange={handlePickupChange}
-        onSelect={handlePickupSelect}
-      />
+      <div className="location-fields">
+        <LocationInput
+          label="Pickup location"
+          placeholder="Enter your pickup address"
+          value={pickupQuery}
+          onChange={handlePickupChange}
+          onSelect={handlePickupSelect}
+        />
 
-      <LocationInput
-        label="Drop"
-        placeholder="Enter destination"
-        value={dropQuery}
-        onChange={handleDropChange}
-        onSelect={handleDropSelect}
-      />
+        <LocationInput
+          label="Destination"
+          placeholder="Where do you want to go?"
+          value={dropQuery}
+          onChange={handleDropChange}
+          onSelect={handleDropSelect}
+        />
+      </div>
 
-      <RideTypeSelector
-        value={rideType}
-        onChange={setRideType}
-      />
+      <div className="ride-type-section">
+        <h3 className="subsection-title">Choose your ride</h3>
+        <RideTypeSelector value={rideType} onChange={setRideType} showFareRanges={false} />
+      </div>
 
-      {loadingEstimate && <p>Calculating fare...</p>}
-
-      {fareEstimate && !loadingEstimate && (
-        <div>
-          <p>
-            Distance:{' '}
-            {fareEstimate.distanceInKilometers.toFixed(2)} km
+      <div className="fare-panel" aria-live="polite">
+        {!pickup || !drop ? (
+          <p className="muted-copy">
+            Select both locations to plan your route and estimate the fare.
           </p>
+        ) : loadingEstimate ? (
+          <p role="status">Calculating your estimated fare…</p>
+        ) : fareEstimate ? (
+          <>
+            <div className="fare-panel-heading">
+              <div>
+                <span className="section-eyebrow">ESTIMATED TRIP</span>
+                <h3 className="fare-amount">
+                  ₹{fareEstimate.estimatedFare.toFixed(2)}
+                </h3>
+              </div>
+              <span className="fare-estimate-label">Estimated fare</span>
+            </div>
 
-          <p>
-            Estimated time:{' '}
-            {fareEstimate.durationInMinutes.toFixed(0)} min
-          </p>
-
-          <p>
-            Estimated fare: Rs.{' '}
-            {fareEstimate.estimatedFare.toFixed(2)}
-          </p>
-        </div>
-      )}
+            <div className="trip-metrics">
+              <div>
+                <span className="metric-value">
+                  {fareEstimate.distanceInKilometers.toFixed(1)} km
+                </span>
+                <span className="metric-label">Distance</span>
+              </div>
+              <div>
+                <span className="metric-value">
+                  {fareEstimate.durationInMinutes.toFixed(0)} min
+                </span>
+                <span className="metric-label">Estimated time</span>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
 
       <button
+        className="primary-button booking-submit"
         type="button"
-        onClick={handleBookRide}
-        disabled={disabled || (createdRide !== null && !['COMPLETED', 'CANCELLED'].includes(createdRide.status))}
+        onClick={() => void handleBookRide()}
+        disabled={!canBook}
       >
-        Book Ride
+        {booking ? 'Requesting your ride…' : 'Book your ride'}
       </button>
+
+      {disabled && (
+        <p className="inline-notice" role="status">
+          Please settle your outstanding payment before booking another ride.
+        </p>
+      )}
 
       {canCancel && (
         <button
+          className="secondary-button"
           type="button"
-          onClick={handleCancelRide}
+          onClick={() => void handleCancelRide()}
           disabled={cancelling}
         >
-          {cancelling ? 'Cancelling...' : 'Cancel Ride'}
+          {cancelling ? 'Cancelling ride…' : 'Cancel this ride'}
         </button>
       )}
 
-      {message && <p>{message}</p>}
+      {message && (
+        <p
+          className={
+            message.toLowerCase().includes('successfully')
+              ? 'success-message'
+              : 'inline-notice'
+          }
+          role="status"
+        >
+          {message}
+        </p>
+      )}
     </section>
   )
 }

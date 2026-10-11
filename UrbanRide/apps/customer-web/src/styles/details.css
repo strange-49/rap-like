@@ -1,0 +1,138 @@
+
+.ride-details-layer { position: fixed; inset: 0; z-index: 1500; pointer-events: none; }
+.ride-details-dismiss { position: absolute; inset: 0; pointer-events: auto; width: 100%; height: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.ride-details-drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(500px, 94vw); padding: 25px; overflow-y: auto; pointer-events: auto; background: rgb(12 18 23 / 91%); backdrop-filter: blur(16px); border: 1px solid var(--urban-line); border-radius: 22px 0 0 22px; color: var(--urban-white); box-shadow: -24px 0 70px rgb(0 0 0 / 28%); animation: drawer-in .28s cubic-bezier(.2,.8,.2,1) both; }
+.ride-details-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 22px; }
+.ride-details-header h2 { color: var(--urban-white); margin: 5px 0 0; font-size: 1.4rem; }
+.driver-profile-placeholder { display: flex; align-items: center; gap: 14px; padding: 14px 0 20px; }
+.driver-avatar-placeholder { display: grid; place-items: center; flex: 0 0 62px; height: 62px; border-radius: 50%; background: var(--urban-green); color: #07130d; font-weight: 800; }
+.driver-profile-copy { display: grid; gap: 5px; min-width: 0; }
+.driver-profile-copy strong { color: var(--urban-white); }
+.driver-profile-copy span, .driver-profile-copy small { color: var(--urban-muted); font-size: .78rem; overflow-wrap: anywhere; }
+.details-map-preview { border-radius: 15px; overflow: hidden; }
+.ride-details-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 17px 0; border-bottom: 1px solid var(--urban-line); }
+.ride-details-stats > div { display: grid; gap: 5px; min-width: 0; }
+.ride-details-stats small { color: var(--urban-muted); font-size: .7rem; }
+.ride-details-stats strong { color: var(--urban-white); font-size: .82rem; overflow-wrap: anywhere; }
+.ride-progress-panel { padding: 20px 0; }
+.ride-progress-panel h3 { margin: 0; color: var(--urban-white); font-size: 1rem; }
+.ride-progress-track { display: flex; justify-content: space-between; gap: 5px; margin-top: 20px; position: relative; }
+.ride-progress-track::before { content: ''; position: absolute; left: 12px; right: 12px; top: 12px; height: 3px; background: var(--urban-line); }
+.progress-step { position: relative; z-index: 1; display: grid; justify-items: center; gap: 7px; width: 25%; color: #7d8991; font-size: .9rem; }
+.progress-step::first-letter { color: var(--urban-green); }
+.progress-step.is-complete { color: var(--urban-green-bright); }
+.progress-step small { color: var(--urban-muted); font-size: .65rem; text-align: center; }
+.ride-details-footer { display: grid; gap: 8px; padding-top: 15px; border-top: 1px solid var(--urban-line); color: var(--urban-muted); font-size: .8rem; }
+.ride-details-footer code { color: var(--urban-white); overflow-wrap: anywhere; }
+:root[data-theme="light"] .ride-details-drawer { background: rgb(255 255 255 / 94%); }
+@media (max-width: 600px) { .ride-details-drawer { width: 100%; border-radius: 0; padding: 20px 16px; } }
+
+/* Details drawer: the drawer itself scrolls; the page behind remains visible. */
+.ride-details-drawer { width: min(470px, 94vw); max-height: 100dvh; overscroll-behavior: contain; scrollbar-width: thin; }
+.ride-details-drawer > section,
+.ride-details-drawer > .details-payment-panel,
+.ride-details-drawer > .details-information-panel,
+.ride-details-drawer > .details-action-panel { margin-top: 15px; }
+.details-information-panel,
+.details-action-panel,
+.details-payment-panel { padding: 14px; border: 1px solid var(--urban-line); border-radius: 14px; background: rgb(255 255 255 / 3%); }
+.details-information-panel h3,
+.details-action-panel h3,
+.details-payment-panel h3 { margin: 0 0 10px; font-size: .96rem; color: var(--urban-white); }
+.details-information-panel dl { margin: 0; display: grid; gap: 0; }
+.details-information-panel dl > div { display: grid; grid-template-columns: minmax(92px, .72fr) minmax(0, 1.28fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--urban-line); }
+.details-information-panel dl > div:last-child { border-bottom: 0; }
+.details-information-panel dt { color: var(--urban-muted); font-size: .76rem; }
+.details-information-panel dd { margin: 0; color: var(--urban-white); font-size: .78rem; overflow-wrap: anywhere; text-align: right; }
+.details-information-panel code { font-size: .72rem; }
+.details-muted-copy { margin: 0 0 12px; color: var(--urban-muted); font-size: .78rem; line-height: 1.5; }
+.payment-recommended { color: var(--urban-green-bright); font-size: .68rem; }
+.details-payment-panel > section { display: grid; gap: 12px; }
+.details-payment-panel > section h3 { display: none; }
+.details-payment-panel > section > p { margin: 0; color: var(--urban-muted); font-size: .8rem; }
+.details-payment-panel label { display: grid; gap: 7px; color: var(--urban-muted); font-size: .78rem; }
+.details-payment-panel select { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--urban-line); border-radius: 10px; background: rgb(255 255 255 / 5%); color: var(--urban-white); }
+.details-payment-panel button,
+.details-full-button { width: 100%; min-height: 42px; }
+.details-payment-panel button { border: 0; border-radius: 11px; padding: 11px 14px; color: #06150d; background: var(--urban-green); font-weight: 800; cursor: pointer; }
+.details-payment-panel button:disabled { opacity: .5; cursor: not-allowed; }
+.details-payment-panel > section > p:last-child { overflow-wrap: anywhere; }
+.details-action-panel p { color: var(--urban-muted); font-size: .8rem; margin: 7px 0; }
+.details-action-panel .field-label { display: grid; gap: 7px; margin-top: 12px; color: var(--urban-muted); font-size: .8rem; }
+.details-action-panel select, .details-action-panel textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--urban-line); border-radius: 10px; background: rgb(255 255 255 / 5%); color: var(--urban-white); }
+.details-action-panel textarea { resize: vertical; }
+.details-bottom-actions { display: grid; gap: 10px; margin: 15px 0 8px; }
+.details-bottom-actions button { width: 100%; }
+.ride-progress-track .progress-step { width: 20%; }
+:root[data-theme="light"] .details-information-panel,
+:root[data-theme="light"] .details-action-panel,
+:root[data-theme="light"] .details-payment-panel { background: rgb(255 255 255 / 76%); }
+:root[data-theme="light"] .details-information-panel h3,
+:root[data-theme="light"] .details-action-panel h3,
+:root[data-theme="light"] .details-payment-panel h3,
+:root[data-theme="light"] .details-information-panel dd { color: #17231d; }
+:root[data-theme="light"] .details-payment-panel select,
+:root[data-theme="light"] .details-action-panel select,
+:root[data-theme="light"] .details-action-panel textarea { background: #fff; color: #17231d; border-color: #dbe5de; }
+@media (max-width: 600px) {
+  .ride-details-drawer { width: 100%; padding: 18px 15px; border-radius: 0; }
+  .details-information-panel dl > div { grid-template-columns: 88px minmax(0,1fr); }
+}
+
+.ride-details-tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px; position: sticky; top: -25px; z-index: 3; padding: 8px 0 10px; margin-bottom: 8px; background: rgb(12 18 23 / 96%); border-bottom: 1px solid var(--urban-line); }
+.ride-details-tabs button { min-width: 0; border: 0; border-radius: 9px; padding: 9px 4px; color: var(--urban-muted); background: transparent; font-size: .76rem; cursor: pointer; }
+.ride-details-tabs button:hover, .ride-details-tabs button:focus-visible { color: var(--urban-green-bright); background: rgb(16 200 120 / 10%); }
+.drawer-anchor { scroll-margin-top: 54px; }
+.drawer-support-panel { margin-bottom: 10px; }
+:root[data-theme="light"] .ride-details-tabs { background: rgb(255 255 255 / 97%); }
+:root[data-theme="light"] .ride-details-tabs button { color: #52635a; }
+:root[data-theme="light"] .ride-details-tabs button:hover,
+:root[data-theme="light"] .ride-details-tabs button:focus-visible { color: #087b48; }
+@media (max-width: 600px) { .ride-details-tabs { top: -18px; } }
+
+.details-payment-panel .payment-mode-options { display: grid; gap: 8px; }
+.details-payment-panel .payment-mode-option { display: grid; grid-template-columns: 18px minmax(0,1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 62px; padding: 11px 12px; text-align: left; border: 1px solid var(--urban-line); border-radius: 12px; background: rgb(255 255 255 / 3%); color: var(--urban-white); cursor: pointer; }
+.details-payment-panel .payment-mode-option.is-selected { border-color: var(--urban-green); background: rgb(16 200 120 / 10%); box-shadow: inset 0 0 0 1px rgb(16 200 120 / 10%); }
+.details-payment-panel .payment-radio-dot { width: 17px; height: 17px; border: 2px solid var(--urban-muted); border-radius: 50%; display: grid; place-items: center; }
+.details-payment-panel .payment-mode-option.is-selected .payment-radio-dot { border-color: var(--urban-green); }
+.details-payment-panel .payment-mode-option.is-selected .payment-radio-dot::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--urban-green); }
+.details-payment-panel .payment-mode-copy { display: grid; gap: 4px; min-width: 0; }
+.details-payment-panel .payment-mode-copy strong { font-size: .8rem; color: inherit; }
+.details-payment-panel .payment-mode-copy small { font-size: .69rem; color: var(--urban-muted); font-weight: 400; }
+.details-payment-panel .payment-mode-tag { padding: 4px 7px; border-radius: 999px; background: rgb(16 200 120 / 13%); color: var(--urban-green-bright); font-size: .62rem; white-space: nowrap; }
+.details-payment-panel .payment-proceed-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; margin-top: 2px; border-radius: 11px; background: var(--urban-green); color: #06150d; font-weight: 800; }
+.details-payment-panel .payment-proceed-button:disabled { opacity: .56; }
+.details-payment-panel .payment-mode-option { background: rgb(255 255 255 / 3%); }
+:root[data-theme="light"] .details-payment-panel .payment-mode-option { color: #17231d; background: #fff; }
+:root[data-theme="light"] .details-payment-panel .payment-mode-copy small { color: #5d6d64; }
+
+.driver-profile-copy { flex: 1 1 auto; }
+.driver-contact-actions { display: flex; gap: 7px; align-self: center; }
+.driver-contact-actions button { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border: 1px solid var(--urban-line); border-radius: 50%; background: rgb(255 255 255 / 4%); color: var(--urban-white); font-size: 1rem; }
+.driver-contact-actions button:disabled { opacity: .42; cursor: not-allowed; }
+:root[data-theme="light"] .driver-contact-actions button { color: #17231d; background: #fff; border-color: #dbe5de; }
+@media (max-width: 390px) { .driver-contact-actions { flex-direction: column; } }
+
+
+/* View Details drawer: inset from the viewport and sized to preserve the visible dashboard. */
+.ride-details-drawer {
+  top: 12px;
+  right: 14px;
+  bottom: 12px;
+  width: min(420px, calc(100vw - 28px));
+  max-height: calc(100dvh - 24px);
+  padding: 20px 18px;
+  border-radius: 20px;
+  background: rgb(9 15 20 / 92%);
+  box-shadow: -18px 10px 54px rgb(0 0 0 / 36%);
+}
+.ride-details-header { margin-bottom: 13px; }
+.ride-details-header h2 { font-size: 1.25rem; }
+.ride-details-tabs { top: -20px; }
+.ride-details-drawer > section,
+.ride-details-drawer > .details-payment-panel,
+.ride-details-drawer > .details-information-panel,
+.ride-details-drawer > .details-action-panel { margin-top: 12px; }
+@media (max-width: 600px) {
+  .ride-details-drawer { inset: 0; width: 100%; max-height: 100dvh; border-radius: 0; padding: 18px 15px; }
+}
