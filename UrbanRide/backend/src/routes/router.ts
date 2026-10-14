@@ -11,6 +11,7 @@ import {
 } from '../modules/notifications/device-token.controller'
 import { handleNotificationTest } from '../modules/notifications/notification.controller'
 import { handleCommunicationRoutes } from '../modules/communication/communication.routes'
+import { handleChatRoutes } from '../modules/communication/chat.routes'
 import { handleCorporateRoutes } from '../modules/corporate/corporate.routes'
 import { handleAdminRoutes } from '../modules/admin/admin.routes'
 import { handlePaymentRoutes } from '../modules/payments/payment.routes'
@@ -126,6 +127,17 @@ export function createRouter(
             return
           }
         }
+      }
+
+      if (url.pathname.startsWith('/chat/')) {
+        const authorization = request.headers.authorization
+        let authContext = null
+        if (authorization?.startsWith('Bearer ')) {
+          const token = authorization.slice('Bearer '.length).trim()
+          if (token) authContext = authService.authenticate(token)
+        }
+        const handled = await handleChatRoutes(request, response, authContext)
+        if (handled) return
       }
 
       if (

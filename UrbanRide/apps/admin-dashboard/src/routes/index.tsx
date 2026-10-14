@@ -11,6 +11,7 @@ import { AdminClientsPage } from '../pages/AdminClientsPage'
 import { AdminCorporateDetailPage } from '../pages/AdminCorporateDetailPage'
 import { ROUTE_PATHS } from './route-paths'
 import { AdminModulePage } from '../pages/AdminModulePage'
+import { AdminSupportPage } from '../pages/AdminSupportPage'
 
 export function AppRoutes() {
   return (
@@ -26,7 +27,7 @@ export function AppRoutes() {
         <Route path={ROUTE_PATHS.clients} element={<AdminClientsPage />} />
         <Route path="/clients/detail" element={<AdminCorporateDetailPage />} />
         <Route path={ROUTE_PATHS.settings} element={<AdminModulePage />} />
-        <Route path="/support" element={<AdminModulePage />} />
+        <Route path="/support" element={<AdminSupportPage />} />
         <Route path="/fleet" element={<AdminModulePage />} />
         <Route path="/analytics" element={<AdminModulePage />} />
         <Route path="/notifications" element={<AdminModulePage />} />
