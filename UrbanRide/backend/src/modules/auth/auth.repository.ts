@@ -41,3 +41,8 @@ export function createUser(data: {
     data,
   })
 }
+
+
+export function updateUserPasswordHash(id: string, passwordHash: string) {
+  return prisma.user.update({ where: { id }, data: { passwordHash } });
+}

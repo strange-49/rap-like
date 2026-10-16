@@ -4,8 +4,9 @@ import type {
 } from 'node:http'
 
 import { sendError } from '../common/errors/http-error-handler'
+import type { AuthContext } from '../common/auth/auth-context'
 import type { HttpHandler } from '../common/middleware/request-logging.middleware'
-import type { DevelopmentAuthService } from '../modules/auth/auth.service'
+import type { AuthService } from '../modules/auth/auth.service'
 import {
   handleDeviceTokenRoutes,
 } from '../modules/notifications/device-token.controller'
@@ -30,7 +31,7 @@ import {
 export function createRouter(
   authRoutes: HttpHandler,
   rideRoutes: typeof handleRideRoutes,
-  authService: DevelopmentAuthService,
+  authService: AuthService,
 ) {
   return async (
     request: IncomingMessage,
@@ -83,23 +84,7 @@ export function createRouter(
       if (
         url.pathname.startsWith('/notifications/')
       ) {
-        const authorization =
-          request.headers.authorization
-
-        let authContext = null
-
-        if (
-          authorization?.startsWith('Bearer ')
-        ) {
-          const token = authorization
-            .slice('Bearer '.length)
-            .trim()
-
-          if (token) {
-            authContext =
-              authService.authenticate(token)
-          }
-        }
+        const authContext = getRequestAuthContext(request, authService)
 
         const handled =
           await handleDeviceTokenRoutes(
@@ -121,6 +106,7 @@ export function createRouter(
             await handleNotificationTest(
               request,
               response,
+              authContext,
             )
 
           if (testHandled) {
@@ -145,10 +131,12 @@ export function createRouter(
           '/communication/',
         )
       ) {
+        const authContext = getRequestAuthContext(request, authService)
         const handled =
           await handleCommunicationRoutes(
             request,
             response,
+            authContext,
           )
 
         if (handled) {
@@ -192,10 +180,12 @@ export function createRouter(
       if (
         url.pathname.startsWith('/admin/')
       ) {
+        const authContext = getRequestAuthContext(request, authService)
         const handled =
           await handleAdminRoutes(
             request,
             response,
+            authContext,
           )
 
         if (handled) {
@@ -320,4 +310,15 @@ export function createRouter(
       sendError(response, error)
     }
   }
+}
+
+
+function getRequestAuthContext(
+  request: IncomingMessage,
+  authService: AuthService,
+): AuthContext | null {
+  const authorization = request.headers.authorization
+  if (!authorization?.startsWith('Bearer ')) return null
+  const token = authorization.slice('Bearer '.length).trim()
+  return token ? authService.authenticate(token) : null
 }

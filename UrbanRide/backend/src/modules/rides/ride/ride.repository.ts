@@ -156,7 +156,13 @@ export function updateRide(
   });
 }
 
-export function findRequestedRides() {
+export async function findRequestedRides() {
+  // Expire unaccepted requests after 15 minutes in the source of truth, not only in the UI.
+  const expiry = new Date(Date.now() - 15 * 60 * 1000);
+  await prisma.ride.updateMany({
+    where: { status: { in: ['REQUESTED', 'SEARCHING'] }, requestedAt: { lt: expiry }, riderId: null },
+    data: { status: 'CANCELLED', cancellationReason: 'SYSTEM', cancelledAt: new Date() },
+  });
   return prisma.ride.findMany({
     where: {
       status: {

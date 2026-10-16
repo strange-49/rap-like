@@ -1,3 +1,4 @@
+import { RideChatPanel } from '../components/RideChatPanel'
 
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -589,6 +590,10 @@ export function HomePage() {
               <div className="card-heading-row"><h3>Payment Options</h3><span className="payment-recommended">Secure checkout</span></div>
               <p className="details-muted-copy">Choose when to pay. Payment availability follows the current ride status.</p>
               <PaymentCard ride={createdRide} onPaymentUpdate={() => { void loadRideHistory() }} />
+            </section>
+
+            <section className="details-action-panel drawer-anchor" id="ride-drawer-chat">
+              <RideChatPanel rideId={createdRide.id} rideStatus={createdRide.status} />
             </section>
 
             <section id="ride-drawer-support" className="details-action-panel drawer-support-panel drawer-anchor">

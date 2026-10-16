@@ -1,4 +1,8 @@
-import { getClientToken } from './auth'
+
+import {
+  clearClientSession,
+  getClientToken,
+} from './auth'
 
 const API_BASE_URL = 'http://localhost:3000'
 
@@ -47,6 +51,24 @@ export type CorporateRide = {
   cancelledAt: string | null
 }
 
+function redirectToClientLogin() {
+  try {
+    clearClientSession()
+
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('urbanride_client_')) {
+        localStorage.removeItem(key)
+      }
+    }
+  } catch {
+    // Redirect even if browser storage cleanup fails.
+  }
+
+  if (window.location.pathname !== '/login') {
+    window.location.replace('/login')
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -54,29 +76,29 @@ async function request<T>(
   const token = getClientToken()
 
   if (!token) {
-    throw new Error(
-      'You are not logged in.',
-    )
+    redirectToClientLogin()
+    throw new Error('Your session has expired. Please log in again.')
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}${path}`,
-    {
-      ...options,
-      headers: {
-        'content-type': 'application/json',
-        ...(options.headers ?? {}),
-        Authorization: `Bearer ${token}`,
-      },
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'content-type': 'application/json',
+      ...(options.headers ?? {}),
+      Authorization: `Bearer ${token}`,
     },
-  )
+  })
 
-  const data = await response.json()
+  if (response.status === 401) {
+    redirectToClientLogin()
+    throw new Error('Your session has expired. Please log in again.')
+  }
+
+  const data = await response.json().catch(() => null)
 
   if (!response.ok) {
     throw new Error(
-      data?.error?.message ??
-        'Request failed.',
+      data?.error?.message ?? 'Request failed.',
     )
   }
 
@@ -89,13 +111,9 @@ export function getCurrentCorporateAccount() {
   )
 }
 
-export function getEmployees(
-  corporateAccountId: string,
-) {
+export function getEmployees(corporateAccountId: string) {
   return request<Employee[]>(
-    `/corporate/accounts/${encodeURIComponent(
-      corporateAccountId,
-    )}/employees`,
+    `/corporate/accounts/${encodeURIComponent(corporateAccountId)}/employees`,
   )
 }
 
@@ -107,10 +125,11 @@ export function addEmployee(
     phone?: string
   },
 ) {
-  return request<{ employee: Employee; invitationToken: string }>(
-    `/corporate/accounts/${encodeURIComponent(
-      corporateAccountId,
-    )}/employees`,
+  return request<{
+    employee: Employee
+    invitationToken: string
+  }>(
+    `/corporate/accounts/${encodeURIComponent(corporateAccountId)}/employees`,
     {
       method: 'POST',
       body: JSON.stringify(data),
@@ -118,19 +137,13 @@ export function addEmployee(
   )
 }
 
-export function getCorporateRides(
-  corporateAccountId: string,
-) {
+export function getCorporateRides(corporateAccountId: string) {
   return request<CorporateRide[]>(
-    `/corporate/accounts/${encodeURIComponent(
-      corporateAccountId,
-    )}/rides`,
+    `/corporate/accounts/${encodeURIComponent(corporateAccountId)}/rides`,
   )
 }
 
-export function getCorporateReport(
-  corporateAccountId: string,
-) {
+export function getCorporateReport(corporateAccountId: string) {
   return request<{
     corporateAccountId: string
     summary: {
@@ -151,8 +164,6 @@ export function getCorporateReport(
     }>
     rides: CorporateRide[]
   }>(
-    `/corporate/accounts/${encodeURIComponent(
-      corporateAccountId,
-    )}/reports`,
+    `/corporate/accounts/${encodeURIComponent(corporateAccountId)}/reports`,
   )
 }

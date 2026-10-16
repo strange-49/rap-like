@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { ValidationError } from '../../common/validation/validation-error'
-import type { DevelopmentAuthService, CorporateLoginRequest, SignupRequest } from './auth.service'
+import type { AuthService, CorporateLoginRequest, SignupRequest } from './auth.service'
 import type { DevelopmentLoginRequest } from './auth.types'
 
 export interface AuthController {
@@ -14,7 +14,7 @@ export interface AuthController {
 }
 
 export function createAuthController(
-  service: DevelopmentAuthService,
+  service: AuthService,
 ): AuthController {
   return {
     async login(request, response) {

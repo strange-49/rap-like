@@ -4,12 +4,12 @@ import { createApp } from './app'
 import { loadConfig } from './config/environment'
 import { consoleLogger } from './common/logging/logger'
 import { websocketManager } from './realtime/realtime'
-import { createDevelopmentAuthService } from './modules/auth/auth.service'
+import { createAuthService } from './modules/auth/auth.service'
 
 const config = loadConfig(process.env)
 
 const authService =
-  createDevelopmentAuthService()
+  createAuthService()
 
 const server = createApp(
   consoleLogger,
