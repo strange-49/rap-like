@@ -1,4 +1,4 @@
-﻿-- Customer-to-admin support chat. RideChatMessage remains separate.
+-- Customer-to-admin support chat. RideChatMessage remains separate.
 CREATE TABLE "SupportConversation" (
     "id" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
