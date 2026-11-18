@@ -85,10 +85,10 @@ export class WebSocketManager {
       }
 
       if (
-        this.canReceiveRideEvent(
-          client.authContext,
-          event,
-        )
+        canReceiveRideEvent({
+          authContext: client.authContext,
+          corporateAccountId: client.authContext?.corporateAccountId ?? null,
+        }, event)
       ) {
         client.socket.send(
           JSON.stringify(event),
@@ -101,52 +101,24 @@ export class WebSocketManager {
     return this.clients.size;
   }
 
-  private canReceiveRideEvent(
-    authContext: AuthContext | null,
-    event: RideEvent,
-  ): boolean {
-    if (!authContext) {
-      return false;
-    }
+}
 
-    if (authContext.role === 'ADMIN') {
-      return true;
-    }
-
-    const customerId = this.getString(
-      event.data?.customerId,
-    );
-
-    const riderId = this.getString(
-      event.data?.riderId,
-    );
-
-    if (authContext.role === 'CUSTOMER') {
-      return (
-        customerId === authContext.subjectId
-      );
-    }
-
-    if (authContext.role === 'RIDER') {
-      if (event.type === 'ride.requested') {
-        return true;
-      }
-
-      return riderId === authContext.subjectId;
-    }
-
-    if (authContext.role === 'CLIENT_ADMIN') {
-      return true;
-    }
-
-    return false;
+export function canReceiveRideEvent(
+  client: { authContext: AuthContext | null; corporateAccountId: string | null },
+  event: RideEvent,
+): boolean {
+  const authContext = client.authContext;
+  if (!authContext) return false;
+  if (authContext.role === 'ADMIN') return true;
+  const customerId = typeof event.data?.customerId === 'string' ? event.data.customerId : undefined;
+  const riderId = typeof event.data?.riderId === 'string' ? event.data.riderId : undefined;
+  if (authContext.role === 'CUSTOMER') return customerId === authContext.subjectId;
+  if (authContext.role === 'RIDER') {
+    if (event.type === 'ride.location') return false;
+    return event.type === 'ride.requested' || riderId === authContext.subjectId;
   }
-
-  private getString(
-    value: unknown,
-  ): string | undefined {
-    return typeof value === 'string'
-      ? value
-      : undefined;
+  if (authContext.role === 'CLIENT_ADMIN') {
+    return Boolean(client.corporateAccountId) && event.data?.corporateAccountId === client.corporateAccountId;
   }
+  return false;
 }

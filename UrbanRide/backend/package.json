@@ -5,7 +5,11 @@
   "description": "Framework-free Node.js and TypeScript backend",
   "scripts": {
     "dev": "tsx src/server.ts",
-    "typecheck": "tsc --noEmit --project tsconfig.json"
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "test:integration": "tsx --test \"tests/integration/**/*.test.ts\"",
+    "worker": "tsx src/worker.ts",
+    "loadtest": "node loadtest/run.mjs"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -14,13 +18,16 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@types/ws": "^8.18.1",
+    "bullmq": "^5.81.5",
     "firebase-admin": "^14.4.0",
+    "ioredis": "^5.11.1",
     "pg": "^8.23.0",
     "razorpay": "2.9.8",
     "twilio": "^6.1.1",
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "autocannon": "^8.0.0",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
   }

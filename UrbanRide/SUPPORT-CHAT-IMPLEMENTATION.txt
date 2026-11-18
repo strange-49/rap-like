@@ -1,0 +1,17 @@
+URBANRIDE SUPPORT / CHAT PATCH
+
+Included changes
+- Customer Help & Support copy/layout now clearly explains the ride-linked conversation and distinguishes it from a separate support ticket.
+- Accessible contrast, focus states, form controls, and responsive conversation layout improvements for customer and admin styles.
+- Admin login now calls POST http://localhost:3000/auth/development/login and accepts only a backend-issued token whose role is ADMIN. The demo-only local password bypass was removed.
+- Admin API requests include the authenticated bearer token.
+- Admin support page reads the backend-issued admin token for ride conversation requests.
+
+Important scope limitation
+The uploaded project source does not include the Prisma schema or migration tree. This patch therefore uses the existing persisted /chat/rides/:rideId/messages endpoint. It supports a ride-linked conversation shared with the customer, assigned rider, and an authenticated ADMIN; it does NOT create a separate support-ticket model or independent customer-to-support inbox. Do not represent that missing ticket workflow as implemented. Rider Mobile is unchanged, as requested.
+
+Admin development credentials
+Use an active ADMIN user configured in the backend database. The development auth fixture documents username `admin` / password `admin-dev-password`, but login will succeed only if that user exists and is active in the database. Do not use the former UI-only `karthik` demo gate.
+
+Verification
+Run workspace typechecks/builds locally after applying. Confirm backend starts, customer can open a ride conversation, admin signs in through backend auth, and admin can load/reply to the same ride conversation. Test both light and dark modes.

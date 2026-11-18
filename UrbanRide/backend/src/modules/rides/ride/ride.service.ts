@@ -3,12 +3,17 @@ import crypto from 'node:crypto';
 
 import { AppError } from '../../../common/errors/app-error';
 import { rideEvents } from '../../../realtime/realtime';
+import { enqueue } from '../../../jobs/queue';
+import { startOtpFailuresByRide, startOtpIssuesByRide } from '../../../common/security/limiters';
+import { locationUpdatesByRider } from '../../../common/security/limiters';
+import { riderLocations, type RiderLocation } from '../../../realtime/rider-locations';
+import { getRiderAvailability } from '../../notifications/rider-availability.repository';
 import { getDrivingRoute } from '../../location/map.service';
-import { assertTransition } from './ride.lifecycle';
+import { assertTransition, predecessorsOf } from './ride.lifecycle';
 import { calculateEstimatedFare } from './ride.fare';
 import { findUserById } from '../../auth/auth.repository';
 import {
-  assignRide,
+  assignRideToRiderIfAvailable,
   createRide,
   findActiveCustomerRide,
   findActiveRiderRide,
@@ -18,6 +23,7 @@ import {
   findRequestedRides,
   findRideById,
   updateRide,
+  updateRideStatusIfCurrent,
   recordCompletionConfirmation,
   createRideRating,
   saveRideStartOtp,
@@ -128,6 +134,7 @@ export async function requestRide(
     {
       customerId:
         ride.customerId,
+      corporateAccountId: input.corporateAccountId,
       pickupAddress:
         ride.pickupAddress,
       pickupLatitude:
@@ -160,7 +167,50 @@ export function getRideById(
   return findRideById(id);
 }
 
+export async function reportIdleRiderLocation(riderId: string, point: { latitude: number; longitude: number; heading?: number | null; speedKmh?: number | null }): Promise<RiderLocation> {
+  validateLocationPoint(point);
+  await locationUpdatesByRider.enforce(`rider:${riderId}`);
+  if (await getRiderAvailability(riderId) !== true) {
+    throw new AppError('Rider must be online to report an idle location.', 409, 'RIDER_NOT_ONLINE');
+  }
+  const location = riderLocations.set(riderId, point, point);
+  await riderLocations.publishShared(location);
+  return location;
+}
+
+export async function reportRideLocation(rideId: string, riderId: string, point: { latitude: number; longitude: number; heading?: number | null; speedKmh?: number | null }): Promise<RiderLocation> {
+  validateLocationPoint(point);
+  await locationUpdatesByRider.enforce(`rider:${riderId}`);
+  const ride = await findRideById(rideId);
+  if (!ride || ride.riderId !== riderId || !['ASSIGNED', 'DRIVER_ARRIVING', 'IN_PROGRESS'].includes(ride.status)) {
+    throw new AppError('Only the assigned rider can report location for an active ride.', 403, 'FORBIDDEN');
+  }
+  const location = riderLocations.set(riderId, point, point);
+  await riderLocations.publishShared(location);
+  await rideEvents.publish('ride.location', rideId, {
+    riderId,
+    customerId: ride.customerId,
+    corporateAccountId: ride.corporateAccountId,
+    location,
+  });
+  return location;
+}
+
+export async function getAssignedRiderLocation(rideId: string) {
+  const ride = await findRideById(rideId);
+  if (!ride || !ride.riderId || !['ASSIGNED', 'DRIVER_ARRIVING', 'IN_PROGRESS'].includes(ride.status)) return null;
+  return riderLocations.getFresh(ride.riderId);
+}
+
+function validateLocationPoint(point: { latitude: number; longitude: number }): void {
+  if (!Number.isFinite(point.latitude) || point.latitude < -90 || point.latitude > 90 ||
+      !Number.isFinite(point.longitude) || point.longitude < -180 || point.longitude > 180) {
+    throw new AppError('Latitude and longitude are invalid.', 400, 'INVALID_LOCATION');
+  }
+}
+
 export async function getCustomerStartOtp(rideId: string, customerId: string) {
+  await startOtpIssuesByRide.enforce(`ride:${rideId}`, 'Too many ride start code requests. Try again later.');
   const ride = await findRideById(rideId);
   if (!ride || ride.customerId !== customerId || !ride.startOtpRequired || !['ASSIGNED', 'DRIVER_ARRIVING'].includes(ride.status)) {
     throw new AppError('Start code is unavailable for this ride.', 404, 'START_CODE_UNAVAILABLE');
@@ -260,10 +310,10 @@ export async function transitionRide(
     nextStatus,
   );
 
-  const updatedRide =
-    await updateRide(id, {
-      status: nextStatus,
-    });
+  const updatedRide = await updateRideStatusIfCurrent(id, nextStatus, predecessorsOf(nextStatus));
+  if (!updatedRide) {
+    throw new AppError('Ride status changed before this update could be applied.', 409, 'RIDE_STATE_CONFLICT');
+  }
 
   const eventType =
     getRideEventType(nextStatus);
@@ -274,6 +324,7 @@ export async function transitionRide(
     {
       customerId:
         updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId:
         updatedRide.riderId,
       status:
@@ -288,43 +339,36 @@ export async function assignRider(
   id: string,
   riderId: string,
 ) {
-  const ride =
-    await findRideById(id);
-
+  const ride = await findRideById(id);
   if (!ride) {
-    throw new AppError(
-      'Ride not found.',
-      404,
-      'RIDE_NOT_FOUND',
-    );
+    throw new AppError('Ride not found.', 404, 'RIDE_NOT_FOUND');
   }
 
-  assertTransition(
-    ride.status,
-    'ASSIGNED',
-  );
+  assertTransition(ride.status, 'ASSIGNED');
 
-  const updatedRide =
-    await assignRide(
-      id,
-      riderId,
-    );
+  const result = await assignRideToRiderIfAvailable(id, riderId);
+  if (result.kind === 'not-found') {
+    throw new AppError('Ride not found.', 404, 'RIDE_NOT_FOUND');
+  }
+  if (result.kind === 'busy') {
+    throw new AppError('Rider already has an active ride.', 409, 'RIDER_BUSY');
+  }
+  if (result.kind === 'unavailable') {
+    throw new AppError('Ride has already been assigned.', 409, 'RIDE_ALREADY_ASSIGNED');
+  }
 
-  await rideEvents.publish(
-    'ride.assigned',
-    id,
-    {
-      customerId:
-        updatedRide.customerId,
+  const updatedRide = result.ride;
+  if (result.kind === 'assigned') {
+    await rideEvents.publish('ride.assigned', id, {
+      customerId: updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId,
-      status:
-        updatedRide.status,
-    },
-  );
+      status: updatedRide.status,
+    });
+  }
 
   return updatedRide;
 }
-
 export async function markDriverArriving(
   id: string,
 ) {
@@ -359,6 +403,7 @@ export async function markDriverArriving(
     {
       customerId:
         updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId:
         updatedRide.riderId,
       status:
@@ -395,6 +440,7 @@ export async function startRide(
     const validOtp = storedOtp && storedOtp.expiresAt > new Date() &&
       crypto.timingSafeEqual(Buffer.from(submittedHash), Buffer.from(storedOtp.secretHash));
     if (!validOtp) {
+      await startOtpFailuresByRide.enforce(`ride:${id}`, 'Too many incorrect ride start codes. Try again later.');
       throw new AppError('The ride start code is invalid or expired.', 400, 'INVALID_START_CODE');
     }
     const consumed = await consumeRideStartOtp(id, storedOtp.secretHash);
@@ -420,6 +466,7 @@ export async function startRide(
     {
       customerId:
         updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId:
         updatedRide.riderId,
       status:
@@ -445,6 +492,7 @@ export async function completeRide(
   if (updatedRide.status === 'COMPLETED') {
     await rideEvents.publish('ride.completed', id, {
       customerId: updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId: updatedRide.riderId,
       status: updatedRide.status,
     });
@@ -466,6 +514,7 @@ export async function confirmRideAsCustomer(id: string) {
   if (updatedRide.status === 'COMPLETED') {
     await rideEvents.publish('ride.completed', id, {
       customerId: updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId: updatedRide.riderId,
       status: updatedRide.status,
     });
@@ -515,6 +564,7 @@ export async function cancelRide(
     {
       customerId:
         updatedRide.customerId,
+      corporateAccountId: updatedRide.corporateAccountId,
       riderId:
         updatedRide.riderId,
       reason,
@@ -522,6 +572,14 @@ export async function cancelRide(
         updatedRide.status,
     },
   );
+
+  // Refunds for captured advance payments are retried by the worker. The
+  // handler rechecks persisted cancellation and uses a stable job identity.
+  await enqueue('refund', { rideId: id }, {
+    jobId: `refund-${id}`,
+    attempts: 5,
+    backoff: { type: 'exponential', delay: 5_000 },
+  });
 
   return updatedRide;
 }

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import './AuthPages.css'
 
-const API_BASE_URL = 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 type Theme = 'light' | 'dark'
 type RegistrationResponse = { account: { id: string; name: string; accessCode: string }; administrator: { username: string; email: string; fullName: string }; message: string }
 function readTheme(): Theme { try { return localStorage.getItem('urbanride_client_theme') === 'dark' ? 'dark' : 'light' } catch { return 'light' } }

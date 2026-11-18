@@ -1,7 +1,11 @@
 import 'dotenv/config'
-import { scryptSync } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '../backend/src/generated/prisma/client'
+import { hashPassword } from '../backend/src/common/security/password'
+
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED_IN_PRODUCTION !== 'true') {
+  throw new Error('Refusing to seed a production database. Set ALLOW_SEED_IN_PRODUCTION=true to override.')
+}
 
 const connectionString = process.env.DATABASE_URL
 
@@ -44,25 +48,23 @@ const users = [
   },
 ]
 
-function hashPassword(password: string, username: string): string {
-  return scryptSync(password, username, 64).toString('hex')
-}
-
 async function main(): Promise<void> {
+  const resetPasswords = process.env.SEED_RESET_PASSWORDS === 'true'
+
   for (const user of users) {
+    const passwordHash = await hashPassword(user.password)
     await prisma.user.upsert({
       where: {
         username: user.username,
       },
       update: {
-        passwordHash: hashPassword(user.password, user.username),
+        ...(resetPasswords ? { passwordHash } : {}),
         role: user.role,
         tenantId: user.tenantId,
-        active: true,
       },
       create: {
         username: user.username,
-        passwordHash: hashPassword(user.password, user.username),
+        passwordHash,
         role: user.role,
         tenantId: user.tenantId,
         active: true,

@@ -1,4 +1,4 @@
-import { getMessaging } from 'firebase-admin/messaging';
+﻿import { getMessaging } from 'firebase-admin/messaging';
 
 import '../../config/firebase';
 import { removeDeviceToken } from './device-token.service';
@@ -21,6 +21,12 @@ export async function sendPushNotification(
         body: notification.body,
       },
       data: notification.data,
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'ride-requests-v2',
+        },
+      },
     });
   } catch (error) {
     if (

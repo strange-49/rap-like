@@ -10,7 +10,7 @@ export function AdminLoginPage({ onLogin }: Props) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setLoading(true)
     try {
-      const response = await fetch('http://localhost:3000/auth/development/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: username.trim(), password }) })
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"}/auth/development/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: username.trim(), password }) })
       const data = await response.json()
       if (!response.ok) throw new Error(data?.error?.message || 'Sign-in failed.')
       if (data.principal?.role !== 'ADMIN' || typeof data.token !== 'string') throw new Error('This account does not have administrator permissions.')

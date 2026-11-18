@@ -1,8 +1,11 @@
 import type { ServerResponse } from 'node:http';
 
 import type { AuthContext } from '../../../common/auth/auth-context';
+import { canAccessRide } from '../../../common/authorization/ride-access';
 import { AppError } from '../../../common/errors/app-error';
 import type { RideStatus } from '../../../generated/prisma/client';
+import { GENERIC_PATCH_TARGETS } from './ride.lifecycle';
+import { findCorporateAccountByTenantId } from '../../corporate/corporate.repository';
 import type { RequestRideInput } from './ride.service';
 import {
   assignRider,
@@ -16,13 +19,17 @@ import {
   rateCompletedRide,
   getRequestedRides,
   getRideById,
+  getAssignedRiderLocation,
   markDriverArriving,
+  reportIdleRiderLocation,
+  reportRideLocation,
   requestRide,
   startRide,
   transitionRide,
 } from './ride.service';
 import {
   validateCancellationReason,
+  validateLocationReport,
   validateRequestRideInput,
 } from './ride.validation';
 
@@ -81,6 +88,19 @@ function sendNotFound(
       },
     }),
   );
+}
+
+async function callerCorporateAccountId(authContext: AuthContext): Promise<string | null> {
+  if (authContext.role !== 'CLIENT_ADMIN') return null;
+  if (authContext.corporateAccountId) return authContext.corporateAccountId;
+  if (!authContext.tenant) return null;
+  const account = await findCorporateAccountByTenantId(authContext.tenant.tenantId);
+  return account?.id ?? null;
+}
+
+async function canCallerAccessRide(ride: { customerId: string; riderId: string | null; corporateAccountId: string | null }, authContext: AuthContext): Promise<boolean> {
+  const accountId = await callerCorporateAccountId(authContext);
+  return canAccessRide(ride, authContext, accountId);
 }
 
 function requireRider(
@@ -357,27 +377,10 @@ export async function handleGetRide(
     return;
   }
 
-  if (
-    authContext.role === 'CUSTOMER' &&
-    ride.customerId !==
-      authContext.subjectId
-  ) {
+  if (!(await canCallerAccessRide(ride, authContext))) {
     sendForbidden(
       response,
       'You do not have access to this ride.',
-    );
-
-    return;
-  }
-
-  if (
-    authContext.role === 'RIDER' &&
-    ride.riderId !==
-      authContext.subjectId
-  ) {
-    sendForbidden(
-      response,
-      'You can only access rides assigned to you.',
     );
 
     return;
@@ -402,6 +405,9 @@ export async function handleTransitionRide(
   authContext: AuthContext | null,
   response: ServerResponse,
 ): Promise<void> {
+  if (!GENERIC_PATCH_TARGETS.includes(body.status)) {
+    throw new AppError('This ride state requires its dedicated action endpoint.', 400, 'DEDICATED_RIDE_ACTION_REQUIRED');
+  }
   if (!authContext) {
     sendUnauthorized(response);
     return;
@@ -452,6 +458,11 @@ export async function handleTransitionRide(
     return;
   }
 
+  if (authContext.role === 'CLIENT_ADMIN' && !(await canCallerAccessRide(ride, authContext))) {
+    sendForbidden(response, 'You do not have access to this company ride.');
+    return;
+  }
+
   const updatedRide =
     await transitionRide(
       rideId,
@@ -468,6 +479,37 @@ export async function handleTransitionRide(
     JSON.stringify(updatedRide),
   );
 }
+
+export async function handleReportRiderLocation(body: unknown, authContext: AuthContext | null, response: ServerResponse): Promise<void> {
+  if (!requireRider(authContext, response)) return;
+  const point = validateLocationReport(body);
+  const location = await reportIdleRiderLocation(authContext.subjectId, point);
+  response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  response.end(JSON.stringify(location));
+}
+
+export async function handleReportRideLocation(rideId: string, body: unknown, authContext: AuthContext | null, response: ServerResponse): Promise<void> {
+  if (!requireRider(authContext, response)) return;
+  const point = validateLocationReport(body);
+  const location = await reportRideLocation(rideId, authContext.subjectId, point);
+  response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  response.end(JSON.stringify(location));
+}
+
+export async function handleGetRideLocation(rideId: string, authContext: AuthContext | null, response: ServerResponse): Promise<void> {
+  if (!authContext) { sendUnauthorized(response); return; }
+  const ride = await getRideById(rideId);
+  if (!ride) { sendNotFound(response); return; }
+  const allowed = authContext.role === 'ADMIN' ||
+    (authContext.role === 'CUSTOMER' && ride.customerId === authContext.subjectId) ||
+    (authContext.role === 'RIDER' && ride.riderId === authContext.subjectId) ||
+    (authContext.role === 'CLIENT_ADMIN' && await canCallerAccessRide(ride, authContext));
+  if (!allowed) { sendForbidden(response); return; }
+  const location = await getAssignedRiderLocation(rideId);
+  response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  response.end(JSON.stringify({ rideId, location }));
+}
+
 
 export async function handleAssignRider(
   rideId: string,
@@ -659,29 +701,8 @@ export async function handleCancelRide(
     return;
   }
 
-  if (
-    authContext.role === 'CUSTOMER' &&
-    ride.customerId !==
-      authContext.subjectId
-  ) {
-    sendForbidden(
-      response,
-      'You can only cancel your own rides.',
-    );
-
-    return;
-  }
-
-  if (
-    authContext.role === 'RIDER' &&
-    ride.riderId !==
-      authContext.subjectId
-  ) {
-    sendForbidden(
-      response,
-      'You can only cancel rides assigned to you.',
-    );
-
+  if ((authContext.role === 'CUSTOMER' || authContext.role === 'RIDER') && !(await canCallerAccessRide(ride, authContext))) {
+    sendForbidden(response, 'You do not have access to this ride.');
     return;
   }
 
@@ -693,6 +714,11 @@ export async function handleCancelRide(
       'CLIENT_ADMIN'
   ) {
     sendForbidden(response);
+    return;
+  }
+
+  if (authContext.role === 'CLIENT_ADMIN' && !(await canCallerAccessRide(ride, authContext))) {
+    sendForbidden(response, 'You do not have access to this company ride.');
     return;
   }
 

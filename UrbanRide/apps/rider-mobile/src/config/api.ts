@@ -61,6 +61,14 @@ async function parseError(
     return new Error('Your rider session expired. Please sign in again.');
   }
 
+  try {
+    const body: unknown = await response.clone().json();
+    const message = (body as { error?: { message?: unknown } } | null)?.error?.message;
+    if (typeof message === 'string' && message.trim()) return new Error(message);
+  } catch {
+    // Use the existing generic error for non-JSON responses.
+  }
+
   return new Error(`${fallback} (HTTP ${response.status}).`);
 }
 
@@ -294,4 +302,57 @@ export async function registerRiderDeviceToken(
   }
 
   return response.json();
+}
+
+
+export async function getRiderAvailability(): Promise<boolean> {
+  const token = getRiderAuthToken();
+  if (!token) throw new Error('Rider authentication is required.');
+  const response = await fetch(`${API_URL}/riders/availability`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw await parseError(response, 'Unable to load rider availability');
+  const result = (await response.json()) as { isOnline: boolean };
+  return result.isOnline;
+}
+
+export async function updateRiderAvailability(isOnline: boolean): Promise<boolean> {
+  const token = getRiderAuthToken();
+  if (!token) throw new Error('Rider authentication is required.');
+  const response = await fetch(`${API_URL}/riders/availability`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ isOnline }),
+  });
+  if (!response.ok) throw await parseError(response, 'Unable to update rider availability');
+  const result = (await response.json()) as { isOnline: boolean };
+  return result.isOnline;
+}
+
+export type GeoPoint = { latitude: number; longitude: number; heading?: number | null; speedKmh?: number | null };
+
+export async function reportRideLocation(rideId: string, point: GeoPoint): Promise<void> {
+  const token = getRiderAuthToken();
+  if (!token) return;
+  const response = await fetch(`${API_URL}/rides/${encodeURIComponent(rideId)}/location`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(point),
+  });
+  if (response.status === 401) throw await parseError(response, 'Unable to share location');
+}
+
+export async function reportRiderLocation(point: GeoPoint): Promise<void> {
+  const token = getRiderAuthToken();
+  if (!token) return;
+  const response = await fetch(`${API_URL}/rides/rider/location`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(point),
+  });
+  if (response.status === 401) throw await parseError(response, 'Unable to share location');
 }

@@ -1,6 +1,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { ValidationError } from '../../common/validation/validation-error'
+import { readRawBody } from '../../common/http/body'
+import { authAttemptsByIdentity, authAttemptsByIp, registrationsByIp } from '../../common/security/limiters'
+import { clientIp } from '../../common/security/rate-limit'
 import type { AuthService, CorporateLoginRequest, SignupRequest } from './auth.service'
 import type { DevelopmentLoginRequest } from './auth.types'
 
@@ -18,7 +21,10 @@ export function createAuthController(
 ): AuthController {
   return {
     async login(request, response) {
+      await authAttemptsByIp.enforce(`login:${clientIp(request)}`);
       const input = await readLoginRequest(request)
+      const identityKey = `login:${input.username.trim().toLowerCase()}`;
+      await authAttemptsByIdentity.enforce(identityKey)
       const session = await service.login(input)
 
       if (!session) {
@@ -31,20 +37,26 @@ export function createAuthController(
         return
       }
 
+      await authAttemptsByIdentity.reset(identityKey)
       sendJson(response, 200, session)
     },
 
     async corporateLogin(request, response) {
+      await authAttemptsByIp.enforce(`corp-login:${clientIp(request)}`);
       const input = await readCorporateLoginRequest(request)
+      const identityKey = `corp-login:${input.accessCode.trim().toUpperCase()}:${input.email.trim().toLowerCase()}`;
+      await authAttemptsByIdentity.enforce(identityKey)
       const session = await service.corporateLogin(input)
       if (!session) {
         sendJson(response, 401, { error: { code: 'CORPORATE_LOGIN_FAILED', message: 'Invalid company code or employee credentials.' } })
         return
       }
+      await authAttemptsByIdentity.reset(identityKey)
       sendJson(response, 200, session)
     },
 
     async activateCorporateEmployee(request, response) {
+      await authAttemptsByIp.enforce(`activate:${clientIp(request)}`);
       const value = await readJson(request)
       if (!isRecord(value) || typeof value.token !== 'string' || typeof value.password !== 'string') {
         throw new ValidationError('Invitation token and password are required.')
@@ -54,6 +66,7 @@ export function createAuthController(
     },
 
     async signup(request, response) {
+      await registrationsByIp.enforce(`signup:${clientIp(request)}`, 'Too many sign-up attempts. Please try again later.');
       const input = await readSignupRequest(request)
       const session = await service.signup(input)
 
@@ -164,16 +177,8 @@ async function readCorporateLoginRequest(request: IncomingMessage): Promise<Corp
 async function readJson(
   request: IncomingMessage,
 ): Promise<unknown> {
-  const chunks: Buffer[] = []
-
-  for await (const chunk of request) {
-    chunks.push(Buffer.from(chunk))
-  }
-
   try {
-    return JSON.parse(
-      Buffer.concat(chunks).toString('utf8'),
-    )
+    return JSON.parse(await readRawBody(request))
   } catch {
     throw new ValidationError(
       'Request body must be valid JSON.',

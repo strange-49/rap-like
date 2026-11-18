@@ -4,12 +4,15 @@ import type {
 } from 'node:http'
 
 import { sendError } from '../common/errors/http-error-handler'
+import { apiRequestsByIp, locationLookupsByIp } from '../common/security/limiters'
+import { clientIp } from '../common/security/rate-limit'
 import type { AuthContext } from '../common/auth/auth-context'
 import type { HttpHandler } from '../common/middleware/request-logging.middleware'
 import type { AuthService } from '../modules/auth/auth.service'
 import {
   handleDeviceTokenRoutes,
 } from '../modules/notifications/device-token.controller'
+import { handleRiderAvailabilityRoutes } from '../modules/notifications/rider-availability.controller'
 import { handleNotificationTest } from '../modules/notifications/notification.controller'
 import { handleCommunicationRoutes } from '../modules/communication/communication.routes'
 import { handleChatRoutes } from '../modules/communication/chat.routes'
@@ -43,6 +46,9 @@ export function createRouter(
         `http://${request.headers.host ?? 'localhost'}`,
       )
 
+      if (url.pathname !== '/health' && url.pathname !== '/ready' && request.headers.authorization?.startsWith('Bearer ')) {
+        await apiRequestsByIp.enforce(`api:${clientIp(request)}`);
+      }
       if (url.pathname.startsWith('/auth/')) {
         authRoutes(request, response)
         return
@@ -81,6 +87,15 @@ export function createRouter(
         }
       }
 
+      if (url.pathname === '/riders/availability') {
+        const authContext = getRequestAuthContext(request, authService)
+        const handled = await handleRiderAvailabilityRoutes(
+          request,
+          response,
+          authContext,
+        )
+        if (handled) return
+      }
       if (
         url.pathname.startsWith('/notifications/')
       ) {
@@ -219,6 +234,7 @@ export function createRouter(
         url.pathname ===
           '/locations/fare-estimate'
       ) {
+        await locationLookupsByIp.enforce(`loc:${clientIp(request)}`);
         const handled =
           await handleFareEstimate(
             request,
@@ -235,6 +251,7 @@ export function createRouter(
         url.pathname ===
           '/locations/search'
       ) {
+        await locationLookupsByIp.enforce(`loc:${clientIp(request)}`);
         const handled =
           await handleLocationSearch(
             request,
@@ -250,6 +267,7 @@ export function createRouter(
         request.method === 'GET' &&
         url.pathname === '/location/geocode'
       ) {
+        await locationLookupsByIp.enforce(`loc:${clientIp(request)}`);
         const handled =
           await handleGeocode(
             request,
@@ -266,6 +284,7 @@ export function createRouter(
         url.pathname ===
           '/location/reverse-geocode'
       ) {
+        await locationLookupsByIp.enforce(`loc:${clientIp(request)}`);
         const handled =
           await handleReverseGeocode(
             request,
@@ -289,7 +308,7 @@ export function createRouter(
         request.method === 'GET' &&
         url.pathname === '/ready'
       ) {
-        sendReadiness(response)
+        await sendReadiness(response)
         return
       }
 

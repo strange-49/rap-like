@@ -80,6 +80,13 @@ export function validateRequestRideInput(
   validateLatitude(dropLatitude, 'dropLatitude');
   validateLongitude(dropLongitude, 'dropLongitude');
 
+  if (pickupAddress.length > 300 || dropAddress.length > 300) {
+    throw new AppError('Ride addresses must be 300 characters or fewer.', 400, 'ADDRESS_TOO_LONG');
+  }
+  if (pickupLatitude === dropLatitude && pickupLongitude === dropLongitude) {
+    throw new AppError('Pickup and drop locations must be different.', 400, 'PICKUP_EQUALS_DROP');
+  }
+
   if (estimatedDistance !== undefined && estimatedDistance < 0) {
     throw new AppError(
       'estimatedDistance cannot be negative.',
@@ -108,6 +115,26 @@ export function validateRequestRideInput(
     estimatedDistance,
     estimatedFare,
   };
+}
+
+export interface ValidatedLocationReport {
+  latitude: number;
+  longitude: number;
+  heading: number | null;
+  speedKmh: number | null;
+}
+
+export function validateLocationReport(input: unknown): ValidatedLocationReport {
+  if (!isRecord(input)) throw new AppError('Location body must be an object.', 400, 'INVALID_LOCATION');
+  const latitude = requireNumber(input.latitude, 'latitude');
+  const longitude = requireNumber(input.longitude, 'longitude');
+  validateLatitude(latitude, 'latitude');
+  validateLongitude(longitude, 'longitude');
+  const heading = input.heading === undefined || input.heading === null ? null : requireNumber(input.heading, 'heading');
+  const speedKmh = input.speedKmh === undefined || input.speedKmh === null ? null : requireNumber(input.speedKmh, 'speedKmh');
+  if (heading !== null && (heading < 0 || heading > 360)) throw new AppError('heading must be between 0 and 360.', 400, 'INVALID_LOCATION');
+  if (speedKmh !== null && (speedKmh < 0 || speedKmh > 300)) throw new AppError('speedKmh must be between 0 and 300.', 400, 'INVALID_LOCATION');
+  return { latitude, longitude, heading, speedKmh };
 }
 
 export function validateCancellationReason(

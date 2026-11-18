@@ -24,10 +24,15 @@ export async function handleFareEstimate(
     return false;
   }
 
-  const pickupLatitude = Number(url.searchParams.get('pickupLatitude'));
-  const pickupLongitude = Number(url.searchParams.get('pickupLongitude'));
-  const dropLatitude = Number(url.searchParams.get('dropLatitude'));
-  const dropLongitude = Number(url.searchParams.get('dropLongitude'));
+  // Number(null) is zero, so missing query parameters must remain invalid.
+  const coordinate = (name: string) => {
+    const raw = url.searchParams.get(name);
+    return raw === null || raw.trim() === '' ? Number.NaN : Number(raw);
+  };
+  const pickupLatitude = coordinate('pickupLatitude');
+  const pickupLongitude = coordinate('pickupLongitude');
+  const dropLatitude = coordinate('dropLatitude');
+  const dropLongitude = coordinate('dropLongitude');
   const vehicleType = url.searchParams.get('vehicleType');
 
   if (

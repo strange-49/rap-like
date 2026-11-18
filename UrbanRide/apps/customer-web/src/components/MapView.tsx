@@ -11,6 +11,8 @@ export interface MapLocation {
 interface MapViewProps {
   pickup?: MapLocation
   drop?: MapLocation
+  /** Live position of the assigned rider. */
+  rider?: MapLocation
   height?: string | number
 }
 
@@ -42,6 +44,17 @@ function createMarker(label: 'A' | 'B', color: string) {
 const pickupIcon = createMarker('A', '#16a34a')
 const dropIcon = createMarker('B', '#dc2626')
 
+const riderIcon = L.divIcon({
+  className: 'urbanride-rider-location',
+  html: '<div style="width:22px;height:22px;border-radius:50%;background:#16a34a;border:4px solid white;box-shadow:0 0 0 7px #16a34a35,0 2px 8px #0005"></div>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+
+const OSRM_URL = (
+  import.meta.env.VITE_OSRM_URL || 'https://router.project-osrm.org/route/v1/driving'
+).replace(/\/$/, '')
+
 const currentLocationIcon = L.divIcon({
   className: 'urbanride-current-location',
   html: `<div style="
@@ -56,6 +69,7 @@ const currentLocationIcon = L.divIcon({
 export function MapView({
   pickup,
   drop,
+  rider,
   height = 420,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -63,6 +77,7 @@ export function MapView({
   const markersRef = useRef<L.LayerGroup | null>(null)
   const routeRef = useRef<L.LayerGroup | null>(null)
   const currentLocationMarkerRef = useRef<L.Marker | null>(null)
+  const riderMarkerRef = useRef<L.Marker | null>(null)
 
   const [locating, setLocating] = useState(false)
   const [locationMessage, setLocationMessage] = useState('')
@@ -103,6 +118,7 @@ export function MapView({
       markersRef.current = null
       routeRef.current = null
       currentLocationMarkerRef.current = null
+      riderMarkerRef.current = null
     }
   }, [])
 
@@ -162,7 +178,7 @@ export function MapView({
             `${routeStart.lng},${routeStart.lat};${routeEnd.lng},${routeEnd.lat}`
 
           const response = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`,
+            `${OSRM_URL}/${coordinates}?overview=full&geometries=geojson`,
             { signal: controller.signal },
           )
 
@@ -222,7 +238,27 @@ export function MapView({
 
     const single = start ?? end
     if (single) map.setView(single, 15)
-  }, [pickup, drop])
+  // Compare coordinate values so inline object props do not redraw the route.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickup?.latitude, pickup?.longitude, drop?.latitude, drop?.longitude])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (!rider) {
+      riderMarkerRef.current?.remove()
+      riderMarkerRef.current = null
+      return
+    }
+    const point = L.latLng(rider.latitude, rider.longitude)
+    if (riderMarkerRef.current) {
+      riderMarkerRef.current.setLatLng(point)
+    } else {
+      riderMarkerRef.current = L.marker(point, { icon: riderIcon, zIndexOffset: 900 })
+        .addTo(map)
+        .bindPopup('<strong>Your rider</strong>')
+    }
+  }, [rider?.latitude, rider?.longitude])
 
   function handleLocateMe() {
     const map = mapRef.current

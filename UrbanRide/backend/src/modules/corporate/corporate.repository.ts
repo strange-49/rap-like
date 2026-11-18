@@ -89,7 +89,25 @@ export function getCorporateBillingSummary(corporateAccountId: string) {
   return prisma.payment.findMany({
     where: { ride: { corporateAccountId } },
     orderBy: { createdAt: 'desc' },
+    take: CORPORATE_LIST_LIMIT,
   })
+}
+
+/** Bound dashboard detail payloads; aggregate methods below retain whole-account totals. */
+export const CORPORATE_LIST_LIMIT = 500
+
+export async function getCorporatePaymentTotals(corporateAccountId: string) {
+  const where = { ride: { corporateAccountId } }
+  const [all, captured] = await Promise.all([
+    prisma.payment.aggregate({ where, _count: { _all: true }, _sum: { amount: true } }),
+    prisma.payment.aggregate({ where: { ...where, status: 'CAPTURED' }, _count: { _all: true }, _sum: { amount: true } }),
+  ])
+  return {
+    totalPayments: all._count._all,
+    totalAmount: Number(all._sum.amount ?? 0),
+    capturedPayments: captured._count._all,
+    capturedAmount: Number(captured._sum.amount ?? 0),
+  }
 }
 
 export function getCorporateReportData(corporateAccountId: string) {
@@ -101,7 +119,27 @@ export function getCorporateReportData(corporateAccountId: string) {
       payment: { select: { amount: true, status: true } },
     },
     orderBy: { requestedAt: 'desc' },
+    take: CORPORATE_LIST_LIMIT,
   })
+}
+
+export async function getCorporateReportAggregates(corporateAccountId: string) {
+  const where = { corporateAccountId }
+  const [byStatus, totals, perEmployee] = await Promise.all([
+    prisma.ride.groupBy({ by: ['status'], where, _count: { _all: true } }),
+    prisma.ride.aggregate({
+      where,
+      _sum: { estimatedDistance: true, estimatedFare: true, finalFare: true },
+    }),
+    prisma.ride.groupBy({
+      by: ['customerId'],
+      where,
+      _count: { _all: true },
+      orderBy: { _count: { customerId: 'desc' } },
+      take: CORPORATE_LIST_LIMIT,
+    }),
+  ])
+  return { byStatus, totals, perEmployee }
 }
 
 export async function registerCorporateAccountWithAdmin(input: {

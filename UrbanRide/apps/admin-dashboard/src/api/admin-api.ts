@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000'
+﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 export async function adminApi<T>(path: string): Promise<T> {
   const token = sessionStorage.getItem('urbanride-admin-token')
@@ -7,3 +7,4 @@ export async function adminApi<T>(path: string): Promise<T> {
   if (!response.ok) throw new Error(data?.error?.message || `Admin API request failed: ${response.status}`)
   return data as T
 }
+

@@ -1,4 +1,4 @@
-﻿import {
+import {
   NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import {
@@ -8,13 +8,13 @@ import {
   View,
   Alert,
 } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { setActiveRide, setRideHistory, toggleOnline, rideStatusFromApi, type Ride } from '../store/riderSlice';
-import { getActiveRiderRide, getRiderRideHistory } from '../config/api';
+import { setActiveRide, setRideHistory, setOnlineStatus, rideStatusFromApi, type Ride } from '../store/riderSlice';
+import { getActiveRiderRide, getRiderRideHistory, getRiderAvailability, updateRiderAvailability } from '../config/api';
 import type {
   AppDispatch,
   RootState,
@@ -25,6 +25,7 @@ import { colors } from '../styles/colors';
 import { spacing } from '../styles/spacing';
 import { typography } from '../styles/typography';
 import { StyleSheet } from 'react-native';
+import * as Location from 'expo-location';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -52,6 +53,8 @@ export default function HomeScreen({
         state.rider.isOnline,
     );
 
+  const [availabilityBusy, setAvailabilityBusy] = useState(false);
+
   const activeRide =
     useSelector(
       (state: RootState) =>
@@ -69,6 +72,37 @@ export default function HomeScreen({
       (state: RootState) =>
         state.rider.requestedRides,
     );
+
+  // Ask for foreground location permission while online. A root reporter sends
+  // throttled idle coordinates only when this rider has no active ride.
+  useEffect(() => {
+    if (!isOnline) return;
+    void Location.requestForegroundPermissionsAsync().catch(() => undefined);
+  }, [isOnline]);
+
+  useEffect(() => {
+    let mounted = true;
+    void getRiderAvailability()
+      .then((online) => { if (mounted) dispatch(setOnlineStatus(online)); })
+      .catch((error) => {
+        if (mounted) Alert.alert('Rider status unavailable', error instanceof Error ? error.message : 'Unable to load your online status.');
+      });
+    return () => { mounted = false; };
+  }, [dispatch]);
+
+  const handleAvailabilityToggle = async () => {
+    if (availabilityBusy) return;
+    const nextStatus = !isOnline;
+    try {
+      setAvailabilityBusy(true);
+      const confirmedStatus = await updateRiderAvailability(nextStatus);
+      dispatch(setOnlineStatus(confirmedStatus));
+    } catch (error) {
+      Alert.alert('Unable to update status', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setAvailabilityBusy(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -230,18 +264,15 @@ export default function HomeScreen({
             isOnline &&
               styles.offlineButton,
           ]}
-          onPress={() =>
-            dispatch(toggleOnline())
-          }
+          onPress={() => void handleAvailabilityToggle()}
+          disabled={availabilityBusy}
         >
           <Text
             style={
               styles.onlineButtonText
             }
           >
-            {isOnline
-              ? 'GO OFFLINE'
-              : 'GO ONLINE'}
+            {availabilityBusy ? 'UPDATING...' : isOnline ? 'GO OFFLINE' : 'GO ONLINE'}
           </Text>
         </Pressable>
       </View>

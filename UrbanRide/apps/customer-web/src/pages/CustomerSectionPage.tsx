@@ -36,7 +36,7 @@ type SupportConversation = {
   messages: SupportMessage[]
 }
 
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 const SECTION_CONTENT: Record<
   SectionKey,

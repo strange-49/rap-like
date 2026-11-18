@@ -1,5 +1,6 @@
-import { randomBytes, createHash, scryptSync } from 'node:crypto'
+import { randomBytes, createHash } from 'node:crypto'
 import { AppError } from '../../common/errors/app-error'
+import { hashPassword, MAX_PASSWORD_LENGTH } from '../../common/security/password'
 import {
   createCorporateAccount,
   createCorporateEmployee,
@@ -14,6 +15,8 @@ import {
   findCorporateEmployees,
   findCorporateRides,
   getCorporateBillingSummary,
+  getCorporatePaymentTotals,
+  getCorporateReportAggregates,
   getCorporateReportData,
 } from './corporate.repository'
 import { findUserByEmail, findUserByUsername } from '../auth/auth.repository'
@@ -56,7 +59,7 @@ export async function registerCorporateCompany(input: {
   const adminEmail = input.adminEmail.trim().toLowerCase()
   const adminUsername = input.adminUsername.trim().toLowerCase()
 
-  if (!companyName || !billingEmail.includes('@') || !adminName || !adminEmail.includes('@') || !adminUsername || input.password.length < 8) {
+  if (!companyName || !billingEmail.includes('@') || !adminName || !adminEmail.includes('@') || !adminUsername || input.password.length < 8 || input.password.length > MAX_PASSWORD_LENGTH) {
     throw new AppError('Company name, valid company/admin emails, admin name and username, and a password of at least 8 characters are required.', 400, 'CORPORATE_REGISTRATION_INVALID')
   }
   if (adminUsername !== adminEmail) {
@@ -68,15 +71,17 @@ export async function registerCorporateCompany(input: {
 
   const tenantId = `corp_${randomBytes(12).toString('hex')}`
   const accessCode = await generateUniqueAccessCode()
-  const adminPasswordHash = scryptSync(input.password, adminUsername, 64).toString('hex')
+  const adminPasswordHash = await hashPassword(input.password)
   try {
     return await registerCorporateAccountWithAdmin({
       name: companyName, billingEmail, accessCode, tenantId,
       adminUsername, adminEmail, adminPasswordHash, adminName,
     })
   } catch (error) {
-    // Unique constraints may be hit concurrently; never return a partial account.
-    throw new AppError('Company registration could not be completed. Check that the administrator email and username are unique, then try again.', 409, 'CORPORATE_REGISTRATION_CONFLICT')
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
+      throw new AppError('Company registration could not be completed. Check that the administrator email and username are unique, then try again.', 409, 'CORPORATE_REGISTRATION_CONFLICT')
+    }
+    throw error
   }
 }
 
@@ -157,10 +162,8 @@ export async function addEmployee(
     )
   }
 
-  const existingEmployee =
-    await findCorporateEmployeeByEmail(
-      email.trim(),
-    )
+  const normalizedEmail = email.trim().toLowerCase()
+  const existingEmployee = await findCorporateEmployeeByEmail(normalizedEmail)
 
   if (existingEmployee) {
     throw new AppError(
@@ -170,7 +173,6 @@ export async function addEmployee(
     )
   }
 
-  const normalizedEmail = email.trim().toLowerCase()
   const invitationToken = randomBytes(32).toString('hex')
   const invitationTokenHash = createHash('sha256').update(invitationToken).digest('hex')
   const employee = await createCorporateEmployee({
@@ -198,7 +200,7 @@ export async function addEmployee(
 }
 
 export async function activateEmployeeInvitation(token: string, password: string) {
-  if (!token || token.length < 32 || password.length < 8) {
+  if (!token || token.length < 32 || password.length < 8 || password.length > MAX_PASSWORD_LENGTH) {
     throw new AppError('A valid invitation and a password of at least 8 characters are required.', 400, 'INVALID_INVITATION_INPUT')
   }
   const tokenHash = createHash('sha256').update(token).digest('hex')
@@ -211,7 +213,7 @@ export async function activateEmployeeInvitation(token: string, password: string
   if (existing) {
     throw new AppError('An account already exists for this email. Contact your company administrator.', 409, 'EMPLOYEE_ACCOUNT_EXISTS')
   }
-  const passwordHash = hashPassword(password, username)
+  const passwordHash = await hashPassword(password)
   const activation = await activateCorporateEmployee({
     employeeId: employee.id,
     invitationTokenHash: tokenHash,
@@ -234,15 +236,6 @@ export async function authenticateCorporateEmployee(accessCode: string, identifi
   const employee = await findCorporateEmployeeByIdentifier(identifier.trim().toLowerCase())
   if (!employee || !employee.active || !employee.userId || employee.corporateAccountId !== account.id) return null
   return { account, employee }
-}
-
-function hashPassword(password: string, username: string): string {
-  return requireScrypt(password, username)
-}
-
-function requireScrypt(password: string, username: string): string {
-  // Keep the same password-hash format as the existing development auth service.
-  return scryptSync(password, username, 64).toString('hex')
 }
 
 export async function listEmployees(
@@ -327,33 +320,16 @@ export async function getBillingSummary(
     )
   }
 
-  const payments =
-    await getCorporateBillingSummary(
-      corporateAccountId,
-    )
-
-  const totalAmount = payments.reduce(
-    (total, payment) =>
-      total + Number(payment.amount),
-    0,
-  )
-
-  const capturedAmount = payments
-    .filter(
-      (payment) =>
-        payment.status === 'CAPTURED',
-    )
-    .reduce(
-      (total, payment) =>
-        total + Number(payment.amount),
-      0,
-    )
+  const [payments, totals] = await Promise.all([
+    getCorporateBillingSummary(corporateAccountId),
+    getCorporatePaymentTotals(corporateAccountId),
+  ])
 
   return {
     corporateAccountId,
-    totalPayments: payments.length,
-    totalAmount,
-    capturedAmount,
+    totalPayments: totals.totalPayments,
+    totalAmount: totals.totalAmount,
+    capturedAmount: totals.capturedAmount,
     payments,
   }
 }
@@ -382,122 +358,34 @@ export async function getCorporateReport(
     )
   }
 
-  const rides =
-    await getCorporateReportData(
-      corporateAccountId,
-    )
-
-  const completedRides =
-    rides.filter(
-      (ride) =>
-        ride.status === 'COMPLETED',
-    )
-
-  const cancelledRides =
-    rides.filter(
-      (ride) =>
-        ride.status === 'CANCELLED',
-    )
-
-  const requestedRides =
-    rides.filter(
-      (ride) =>
-        ride.status === 'REQUESTED' ||
-        ride.status === 'SEARCHING',
-    )
-
-  const totalDistance = rides.reduce(
-    (total, ride) =>
-      total +
-      Number(
-        ride.estimatedDistance ?? 0,
-      ),
-    0,
-  )
-
-  const totalEstimatedFare =
-    rides.reduce(
-      (total, ride) =>
-        total +
-        Number(
-          ride.estimatedFare ?? 0,
-        ),
-      0,
-    )
-
-  const totalFinalFare =
-    rides.reduce(
-      (total, ride) =>
-        total +
-        Number(
-          ride.finalFare ?? 0,
-        ),
-      0,
-    )
-
-  const totalPayments =
-    rides.filter(
-      (ride) => ride.payment,
-    ).length
-
-  const capturedPayments =
-    rides.filter(
-      (ride) =>
-        ride.payment?.status ===
-        'CAPTURED',
-    ).length
-
-  const capturedAmount =
-    rides.reduce(
-      (total, ride) =>
-        ride.payment?.status ===
-        'CAPTURED'
-          ? total +
-            Number(
-              ride.payment.amount,
-            )
-          : total,
-      0,
-    )
-
-  const employeeRideCounts =
-    new Map<string, number>()
-
-  for (const ride of rides) {
-    employeeRideCounts.set(
-      ride.customerId,
-      (employeeRideCounts.get(
-        ride.customerId,
-      ) ?? 0) + 1,
-    )
-  }
+  const [aggregates, paymentTotals, rides] = await Promise.all([
+    getCorporateReportAggregates(corporateAccountId),
+    getCorporatePaymentTotals(corporateAccountId),
+    getCorporateReportData(corporateAccountId),
+  ])
+  const countFor = (...statuses: string[]) => aggregates.byStatus
+    .filter((group) => statuses.includes(group.status))
+    .reduce((total, group) => total + group._count._all, 0)
+  const totalRides = aggregates.byStatus.reduce((total, group) => total + group._count._all, 0)
 
   return {
     corporateAccountId,
     summary: {
-      totalRides: rides.length,
-      completedRides:
-        completedRides.length,
-      cancelledRides:
-        cancelledRides.length,
-      requestedRides:
-        requestedRides.length,
-      totalDistance,
-      totalEstimatedFare,
-      totalFinalFare,
-      totalPayments,
-      capturedPayments,
-      capturedAmount,
+      totalRides,
+      completedRides: countFor('COMPLETED'),
+      cancelledRides: countFor('CANCELLED'),
+      requestedRides: countFor('REQUESTED', 'SEARCHING'),
+      totalDistance: Number(aggregates.totals._sum.estimatedDistance ?? 0),
+      totalEstimatedFare: Number(aggregates.totals._sum.estimatedFare ?? 0),
+      totalFinalFare: Number(aggregates.totals._sum.finalFare ?? 0),
+      totalPayments: paymentTotals.totalPayments,
+      capturedPayments: paymentTotals.capturedPayments,
+      capturedAmount: paymentTotals.capturedAmount,
     },
-    employeeRideCounts:
-      Array.from(
-        employeeRideCounts.entries(),
-      ).map(
-        ([customerId, rideCount]) => ({
-          customerId,
-          rideCount,
-        }),
-      ),
+    employeeRideCounts: aggregates.perEmployee.map((group) => ({
+      customerId: group.customerId,
+      rideCount: group._count._all,
+    })),
     rides,
   }
 }

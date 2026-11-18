@@ -31,6 +31,7 @@ import {
   acceptRide as acceptRideApi,
   cancelRiderRide,
   getRideById,
+  reportRideLocation,
   updateRiderRide,
   type RequestedRide,
 } from '../config/api';
@@ -416,6 +417,20 @@ export default function ActiveRideScreen({
       subscription?.remove();
     };
   }, []);
+
+  // Throttled GPS updates keep the customer's live rider marker current.
+  const lastLocationReportAtRef = useRef(0);
+  const activeRideId = activeRide?.id ?? null;
+  useEffect(() => {
+    if (!currentLocation || !activeRideId) return;
+    const now = Date.now();
+    if (now - lastLocationReportAtRef.current < 3_000) return;
+    lastLocationReportAtRef.current = now;
+    void reportRideLocation(activeRideId, {
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+    }).catch(() => undefined);
+  }, [currentLocation, activeRideId]);
 
   useEffect(() => {
     if (!activeRide) return;

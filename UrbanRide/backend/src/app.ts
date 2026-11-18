@@ -12,12 +12,8 @@ import { createAuthController } from './modules/auth/auth.controller'
 import type { DevelopmentAuthService } from './modules/auth/auth.service'
 import { createAuthRoutes } from './modules/auth/auth.routes'
 import { createRouter } from './routes/router'
-
-const ALLOWED_ORIGINS = new Set([
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-])
+import { isOriginAllowed } from './config/cors'
+import { INSTANCE_ID } from './config/instance'
 
 function withCors(
   handler: (
@@ -30,8 +26,9 @@ function withCors(
     response: ServerResponse,
   ): Promise<void> => {
     const origin = request.headers.origin
+    response.setHeader('X-Instance-Id', INSTANCE_ID)
 
-    if (origin && ALLOWED_ORIGINS.has(origin)) {
+    if (origin && isOriginAllowed(origin)) {
       response.setHeader('Access-Control-Allow-Origin', origin)
       response.setHeader('Vary', 'Origin')
     }

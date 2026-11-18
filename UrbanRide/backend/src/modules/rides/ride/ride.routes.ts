@@ -4,6 +4,7 @@ import type {
 } from 'node:http';
 
 import type { AuthContext } from '../../../common/auth/auth-context';
+import { readJsonObject } from '../../../common/http/body';
 import {
   handleAssignRider,
   handleCancelRide,
@@ -17,6 +18,9 @@ import {
   handleGetRiderHistory,
   handleRateRide,
   handleGetRide,
+  handleGetRideLocation,
+  handleReportRideLocation,
+  handleReportRiderLocation,
   handleRequestRide,
   handleStartRide,
   handleTransitionRide,
@@ -33,6 +37,23 @@ export async function handleRideRoutes(
     'http://localhost',
   );
   const pathname = url.pathname;
+
+  if (method === 'POST' && pathname === '/rides/rider/location') {
+    const body = await readJsonBody(request);
+    await handleReportRiderLocation(body, authContext, response);
+    return true;
+  }
+
+  const rideLocationMatch = pathname.match(/^\/rides\/([^/]+)\/location$/);
+  if (rideLocationMatch && method === 'POST') {
+    const body = await readJsonBody(request);
+    await handleReportRideLocation(rideLocationMatch[1], body, authContext, response);
+    return true;
+  }
+  if (rideLocationMatch && method === 'GET') {
+    await handleGetRideLocation(rideLocationMatch[1], authContext, response);
+    return true;
+  }
 
   if (
     method === 'GET' &&
@@ -222,23 +243,6 @@ export async function handleRideRoutes(
 
 async function readJsonBody(
   request: IncomingMessage,
-): Promise<unknown> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of request) {
-    chunks.push(
-      Buffer.isBuffer(chunk)
-        ? chunk
-        : Buffer.from(chunk),
-    );
-  }
-
-  const rawBody = Buffer.concat(chunks)
-    .toString('utf8');
-
-  if (!rawBody.trim()) {
-    return {};
-  }
-
-  return JSON.parse(rawBody);
+): Promise<Record<string, unknown>> {
+  return readJsonObject(request);
 }

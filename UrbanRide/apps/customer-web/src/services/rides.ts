@@ -1,7 +1,7 @@
 import type { RideRequest } from '../features/rides/ride-request'
 import { getPrincipal, getToken } from './auth'
 
-const API_BASE_URL = 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 export type RideStatus =
   | 'REQUESTED'
@@ -302,4 +302,24 @@ export async function rateRide(
     const data = await response.json()
     throw new Error(data.error?.message ?? 'Unable to submit rating.')
   }
+}
+
+export type RiderLocation = {
+  latitude: number
+  longitude: number
+  heading?: number | null
+  speedKmh?: number | null
+  updatedAt: number
+}
+
+/** Retrieves the last fresh location of the rider assigned to this ride. */
+export async function getRideLocation(rideId: string): Promise<RiderLocation | null> {
+  const token = getToken()
+  if (!token) throw new Error('You must be logged in to view the rider location.')
+  const response = await fetch(`${API_BASE_URL}/rides/${encodeURIComponent(rideId)}/location`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!response.ok) throw new Error('Unable to load the rider location.')
+  const data = (await response.json()) as { location: RiderLocation | null }
+  return data.location
 }

@@ -1,11 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { HomePage } from '../pages/HomePage'
-import { LoginPage } from '../pages/LoginPage'
-import { SettingsPage } from '../pages/SettingsPage'
-import { BookingPage } from '../pages/BookingPage'
-import { RideHistoryPage } from '../pages/RideHistoryPage'
-import { CustomerSectionPage } from '../pages/CustomerSectionPage'
+const HomePage = lazy(() => import('../pages/HomePage').then((module) => ({ default: module.HomePage })))
+const LoginPage = lazy(() => import('../pages/LoginPage').then((module) => ({ default: module.LoginPage })))
+const SettingsPage = lazy(() => import('../pages/SettingsPage').then((module) => ({ default: module.SettingsPage })))
+const BookingPage = lazy(() => import('../pages/BookingPage').then((module) => ({ default: module.BookingPage })))
+const RideHistoryPage = lazy(() => import('../pages/RideHistoryPage').then((module) => ({ default: module.RideHistoryPage })))
+const CustomerSectionPage = lazy(() => import('../pages/CustomerSectionPage').then((module) => ({ default: module.CustomerSectionPage })))
 import {
   clearSession,
   getCurrentSession,
@@ -77,6 +77,7 @@ function ProtectedRoute({
 export function AppRoutes() {
   return (
     <CustomerLayout>
+      <Suspense fallback={<div role="status">Loading page…</div>}>
       <Routes>
         <Route path={ROUTE_PATHS.login} element={<LoginPage />} />
         <Route path={ROUTE_PATHS.signup} element={<LoginPage />} />
@@ -133,6 +134,7 @@ export function AppRoutes() {
           }
         />
       </Routes>
+      </Suspense>
     </CustomerLayout>
   )
 }

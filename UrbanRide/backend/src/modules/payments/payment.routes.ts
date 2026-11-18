@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AuthContext } from '../../common/auth/auth-context'
+import { readJsonObject, readRawBody } from '../../common/http/body'
 
 import {
   handleCreatePaymentOrder,
@@ -40,13 +41,7 @@ export async function handlePaymentRoutes(
       url.pathname === '/payments/verify'
     )
   ) {
-    let body = ''
-
-    for await (const chunk of request) {
-      body += chunk
-    }
-
-    const input = JSON.parse(body)
+    const input = await readJsonObject(request)
 
     if (url.pathname === '/payments/orders') {
       await handleCreatePaymentOrder(input, response, authContext)
@@ -61,11 +56,8 @@ export async function handlePaymentRoutes(
     request.method === 'POST' &&
     url.pathname === '/payments/webhook'
   ) {
-    let body = ''
-
-    for await (const chunk of request) {
-      body += chunk
-    }
+    // Razorpay signs the exact raw payload; keep its bytes bounded and intact.
+    const body = await readRawBody(request, 256 * 1024)
 
     const signature = request.headers['x-razorpay-signature']
 

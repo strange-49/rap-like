@@ -1,6 +1,6 @@
 import { getToken } from './auth'
 
-const WEBSOCKET_URL = 'ws://localhost:3000/ws'
+const WEBSOCKET_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
 
 export type RideRealtimeEventType =
   | 'ride.requested'
@@ -10,6 +10,7 @@ export type RideRealtimeEventType =
   | 'ride.started'
   | 'ride.completed'
   | 'ride.cancelled'
+  | 'ride.location'
 
 export type RideRealtimeEvent = {
   type: RideRealtimeEventType
@@ -37,6 +38,9 @@ export class CustomerRealtime {
   private stopped = false
 
   private connectionGeneration = 0
+
+  /** Consecutive failed attempts use exponential backoff with jitter. */
+  private reconnectAttempts = 0
 
   private readonly listeners =
     new Set<RideEventListener>()
@@ -208,12 +212,12 @@ export class CustomerRealtime {
           | ConnectionMessage
           | RideRealtimeEvent
 
-      if (
-        message.type ===
-          'connection.ready' ||
-        message.type ===
-          'auth.success'
-      ) {
+      if (message.type === 'auth.success') {
+        this.reconnectAttempts = 0
+        return
+      }
+
+      if (message.type === 'connection.ready') {
         return
       }
 
@@ -255,6 +259,10 @@ export class CustomerRealtime {
       return
     }
 
+    const base = Math.min(30_000, 3_000 * 2 ** this.reconnectAttempts)
+    const delay = Math.round(base * (0.75 + Math.random() * 0.5))
+    this.reconnectAttempts += 1
+
     this.reconnectTimer =
       window.setTimeout(() => {
         this.reconnectTimer = null
@@ -262,7 +270,7 @@ export class CustomerRealtime {
         if (!this.stopped) {
           this.connect()
         }
-      }, 3000)
+      }, delay)
   }
 
   private isRideEvent(
@@ -284,7 +292,9 @@ export class CustomerRealtime {
       message.type ===
         'ride.completed' ||
       message.type ===
-        'ride.cancelled'
+        'ride.cancelled' ||
+      message.type ===
+        'ride.location'
     )
   }
 }

@@ -3,22 +3,27 @@ import crypto from 'node:crypto';
 import Razorpay from 'razorpay';
 
 import { AppError } from '../../common/errors/app-error';
+import { consoleLogger } from '../../common/logging/logger';
 import {
   findCustomerOutstandingPayment,
   findRideById,
 } from '../rides/ride/ride.repository';
 import {
+  claimPaymentRefund,
+  confirmPaymentRefund,
+  failPaymentRefund,
   createPayment,
   findPaymentByRideId,
   findPaymentByRideForCustomer,
   findCustomerPaymentById,
   updatePayment,
-  updatePaymentUnlessCaptured,
+  updatePaymentUnlessTerminal,
 } from './payment.repository';
+import { refundIdempotencyKey } from './refund-idempotency';
 
 export type PaymentMode = 'ADVANCE' | 'POST_RIDE';
 
-function getRazorpayClient() {
+function getRazorpayClient(headers?: Record<string, string>) {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -41,6 +46,7 @@ function getRazorpayClient() {
   return new Razorpay({
     key_id: keyId,
     key_secret: keySecret,
+    ...(headers ? { headers } : {}),
   });
 }
 
@@ -58,7 +64,34 @@ function getRazorpaySecret() {
   return keySecret;
 }
 
-export async function createRazorpayOrder(
+/**
+ * Serializes order creation per ride inside this process. Together with the
+ * unique-violation fallback below it stops a double-tap from creating two
+ * Razorpay orders (one of which would be orphaned).
+ */
+const rideOrderLocks = new Map<string, Promise<unknown>>();
+
+async function withRideOrderLock<T>(rideId: string, task: () => Promise<T>): Promise<T> {
+  const previous = rideOrderLocks.get(rideId) ?? Promise.resolve();
+  const run = previous.catch(() => undefined).then(task);
+  const tail = run.catch(() => undefined);
+  rideOrderLocks.set(rideId, tail);
+  try {
+    return await run;
+  } finally {
+    if (rideOrderLocks.get(rideId) === tail) rideOrderLocks.delete(rideId);
+  }
+}
+
+export function createRazorpayOrder(
+  rideId: string,
+  mode: PaymentMode,
+  customerId: string,
+) {
+  return withRideOrderLock(rideId, () => createRazorpayOrderUnlocked(rideId, mode, customerId));
+}
+
+async function createRazorpayOrderUnlocked(
   rideId: string,
   mode: PaymentMode,
   customerId: string,
@@ -166,7 +199,23 @@ export async function createRazorpayOrder(
         razorpayPaymentId: null,
         razorpaySignature: null,
       })
-    : createPayment(paymentData);
+    : createPaymentOrReuse(rideId, paymentData);
+}
+
+async function createPaymentOrReuse(
+  rideId: string,
+  paymentData: Parameters<typeof createPayment>[0],
+) {
+  try {
+    return await createPayment(paymentData);
+  } catch (error) {
+    // Another request (or instance) created the payment first: reuse it.
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002') {
+      const existing = await findPaymentByRideId(rideId);
+      if (existing) return existing;
+    }
+    throw error;
+  }
 }
 
 export async function verifyPaymentSignature(
@@ -266,11 +315,17 @@ export async function verifyPaymentSignature(
         ? 'FAILED'
         : 'PENDING';
 
-  return (await updatePaymentUnlessCaptured(payment.id, {
+  if (['REFUND_PENDING', 'REFUND_FAILED', 'REFUNDED'].includes(payment.status)) return payment;
+
+  const updated = await updatePaymentUnlessTerminal(payment.id, {
     status: nextStatus,
     razorpayPaymentId,
     razorpaySignature,
-  }))!;
+  });
+  if (!updated) {
+    throw new AppError('Payment not found.', 404, 'PAYMENT_NOT_FOUND');
+  }
+  return updated;
 }
 
 export async function getCustomerPaymentStatus(
@@ -295,4 +350,55 @@ export async function getCustomerOutstandingPayment(customerId: string) {
     paymentStatus: ride.payment?.status ?? 'UNPAID',
     amount: ride.payment?.amount ?? null,
   };
+}
+
+/**
+ * Captures an AUTHORIZED payment. Only needed when the Razorpay account is NOT
+ * set to auto-capture (see RAZORPAY_MANUAL_CAPTURE). Uncaptured payments are
+ * auto-refunded by Razorpay after a few days, so the money would be lost.
+ */
+export async function captureAuthorizedPayment(razorpayPaymentId: string, amountInRupees: number) {
+  const razorpay = getRazorpayClient();
+  return razorpay.payments.capture(razorpayPaymentId, Math.round(amountInRupees * 100), 'INR');
+}
+
+/**
+ * Refunds a CAPTURED payment for a cancelled ride (e.g. an advance payment).
+ * A refund remains pending until Razorpay confirms it. Retries reuse the same
+ * provider idempotency key for an ambiguous attempt; only an explicit provider
+ * failure opens a new attempt with a new key.
+ */
+export async function refundCapturedPaymentForRide(rideId: string) {
+  const ride = await findRideById(rideId);
+  if (!ride || ride.status !== 'CANCELLED') return null;
+
+  const payment = await findPaymentByRideId(rideId);
+  if (!payment || !['CAPTURED', 'REFUND_PENDING', 'REFUND_FAILED'].includes(payment.status) || !payment.razorpayPaymentId) return null;
+
+  const claim = await claimPaymentRefund(payment.id);
+  if (!claim) return null;
+
+  const idempotencyKey = refundIdempotencyKey(payment.id, claim.attempt);
+  const razorpay = getRazorpayClient({ 'X-Refund-Idempotency': idempotencyKey });
+  const refund = await razorpay.payments.refund(payment.razorpayPaymentId, {
+    amount: Math.round(Number(payment.amount) * 100),
+    speed: 'normal',
+    receipt: idempotencyKey,
+    notes: { rideId, reason: 'ride_cancelled' },
+  });
+
+  if (refund.status === 'processed') {
+    await confirmPaymentRefund(payment.id, claim.attempt);
+    consoleLogger.info('payment.refund.confirmed', { rideId, paymentId: payment.id, attempt: claim.attempt });
+    return { refunded: true as const, paymentId: payment.id };
+  }
+  if (refund.status === 'failed') {
+    await failPaymentRefund(payment.id, claim.attempt);
+    throw new Error(`Razorpay refund ${refund.id} failed for ride ${rideId}.`);
+  }
+
+  // Razorpay accepted the refund but has not finalized settlement. The webhook
+  // moves REFUND_PENDING to REFUNDED after provider confirmation.
+  consoleLogger.info('payment.refund.pending', { rideId, paymentId: payment.id, attempt: claim.attempt });
+  return { refunded: false as const, pending: true as const, paymentId: payment.id };
 }

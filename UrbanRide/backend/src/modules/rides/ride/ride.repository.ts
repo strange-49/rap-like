@@ -1,5 +1,7 @@
+
 import { prisma } from '../../../common/database/prisma';
 import type { Prisma } from '../../../generated/prisma/client';
+import type { RideStatus } from '../../../generated/prisma/client';
 
 export function createRide(data: Prisma.RideCreateInput) {
   return prisma.ride.create({
@@ -29,9 +31,7 @@ export function findCustomerRides(customerId: string) {
   });
 }
 
-export function findActiveCustomerRide(
-  customerId: string,
-) {
+export function findActiveCustomerRide(customerId: string) {
   return prisma.ride.findFirst({
     where: {
       customerId,
@@ -74,7 +74,11 @@ export function createRideRating(data: Prisma.RideRatingCreateInput) {
   return prisma.rideRating.create({ data });
 }
 
-export function saveRideStartOtp(rideId: string, secretHash: string, expiresAt: Date) {
+export function saveRideStartOtp(
+  rideId: string,
+  secretHash: string,
+  expiresAt: Date,
+) {
   return prisma.rideStartOtp.upsert({
     where: { rideId },
     create: { rideId, secretHash, expiresAt },
@@ -145,10 +149,7 @@ export async function recordCompletionConfirmation(
   });
 }
 
-export function updateRide(
-  id: string,
-  data: Prisma.RideUpdateInput,
-) {
+export function updateRide(id: string, data: Prisma.RideUpdateInput) {
   return prisma.ride.update({
     where: { id },
     data,
@@ -156,18 +157,36 @@ export function updateRide(
   });
 }
 
-export async function findRequestedRides() {
-  // Expire unaccepted requests after 15 minutes in the source of truth, not only in the UI.
-  const expiry = new Date(Date.now() - 15 * 60 * 1000);
-  await prisma.ride.updateMany({
-    where: { status: { in: ['REQUESTED', 'SEARCHING'] }, requestedAt: { lt: expiry }, riderId: null },
-    data: { status: 'CANCELLED', cancellationReason: 'SYSTEM', cancelledAt: new Date() },
+export async function updateRideStatusIfCurrent(
+  id: string,
+  status: RideStatus,
+  predecessors: readonly RideStatus[],
+) {
+  const result = await prisma.ride.updateMany({
+    where: { id, status: { in: [...predecessors] } },
+    data: { status },
   });
+
+  if (result.count !== 1) return null;
+
+  return prisma.ride.findUnique({
+    where: { id },
+    include: {
+      rating: { select: { score: true, feedback: true } },
+      payment: { select: { status: true, amount: true, mode: true } },
+    },
+  });
+}
+
+export async function findRequestedRides() {
+  const expiry = new Date(Date.now() - 15 * 60 * 1000);
+
   return prisma.ride.findMany({
     where: {
       status: {
         in: ['REQUESTED', 'SEARCHING'],
       },
+      requestedAt: { gte: expiry },
     },
     orderBy: {
       requestedAt: 'asc',
@@ -175,10 +194,108 @@ export async function findRequestedRides() {
   });
 }
 
-export function assignRide(
-  id: string,
+export type AssignRideResult =
+  | {
+      kind: 'assigned';
+      ride: NonNullable<Awaited<ReturnType<typeof prisma.ride.findUnique>>>;
+    }
+  | {
+      kind: 'already-assigned';
+      ride: NonNullable<Awaited<ReturnType<typeof prisma.ride.findUnique>>>;
+    }
+  | { kind: 'busy' }
+  | { kind: 'unavailable' }
+  | { kind: 'not-found' };
+
+/**
+ * Serializes ride claims by rider in PostgreSQL and uses a conditional update
+ * for the ride itself. A partial unique index in the companion migration is
+ * the final database-level guard, including against writers that bypass this
+ * repository method.
+ */
+export async function assignRideToRiderIfAvailable(
+  rideId: string,
   riderId: string,
-) {
+): Promise<AssignRideResult> {
+  return prisma.$transaction(async (tx) => {
+    // Return an integer instead of PostgreSQL's void result from the lock.
+    // The advisory lock is still acquired within this transaction.
+    await tx.$queryRaw`
+      SELECT 1::int AS locked
+      FROM (
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${`rider-assignment:${riderId}`}, 0)
+        )
+      ) AS advisory_lock
+    `;
+
+    const ride = await tx.ride.findUnique({ where: { id: rideId } });
+    if (!ride) return { kind: 'not-found' };
+
+    const activeStatuses = [
+      'ASSIGNED',
+      'DRIVER_ARRIVING',
+      'IN_PROGRESS',
+    ] as const;
+
+    if (
+      ride.riderId === riderId &&
+      activeStatuses.includes(
+        ride.status as (typeof activeStatuses)[number],
+      )
+    ) {
+      const current = await tx.ride.findUnique({
+        where: { id: rideId },
+        include: {
+          payment: { select: { status: true, amount: true, mode: true } },
+        },
+      });
+
+      return current
+        ? { kind: 'already-assigned', ride: current }
+        : { kind: 'not-found' };
+    }
+
+    const otherActiveRide = await tx.ride.findFirst({
+      where: {
+        riderId,
+        status: { in: [...activeStatuses] },
+        id: { not: rideId },
+      },
+      select: { id: true },
+    });
+
+    if (otherActiveRide) return { kind: 'busy' };
+
+    const update = await tx.ride.updateMany({
+      where: {
+        id: rideId,
+        riderId: null,
+        status: { in: ['REQUESTED', 'SEARCHING'] },
+      },
+      data: {
+        riderId,
+        status: 'ASSIGNED',
+        assignedAt: new Date(),
+      },
+    });
+
+    if (update.count !== 1) return { kind: 'unavailable' };
+
+    const assigned = await tx.ride.findUnique({
+      where: { id: rideId },
+      include: {
+        payment: { select: { status: true, amount: true, mode: true } },
+      },
+    });
+
+    return assigned
+      ? { kind: 'assigned', ride: assigned }
+      : { kind: 'not-found' };
+  });
+}
+
+export function assignRide(id: string, riderId: string) {
   return prisma.ride.update({
     where: { id },
     data: {
@@ -190,9 +307,7 @@ export function assignRide(
   });
 }
 
-export function findCorporateRides(
-  corporateAccountId: string,
-) {
+export function findCorporateRides(corporateAccountId: string) {
   return prisma.ride.findMany({
     where: {
       corporateAccountId,
@@ -201,4 +316,86 @@ export function findCorporateRides(
       requestedAt: 'desc',
     },
   });
+}
+
+/** Atomically expires old, unassigned requests and returns only rows this run changed. */
+export async function expireStaleRequestedRides() {
+  const expiry = new Date(Date.now() - 15 * 60 * 1_000);
+
+  const candidates = await prisma.ride.findMany({
+    where: {
+      status: { in: ['REQUESTED', 'SEARCHING'] },
+      requestedAt: { lt: expiry },
+      riderId: null,
+    },
+    select: { id: true },
+  });
+
+  const expired = [];
+
+  for (const candidate of candidates) {
+    const changed = await prisma.ride.updateMany({
+      where: {
+        id: candidate.id,
+        status: { in: ['REQUESTED', 'SEARCHING'] },
+        riderId: null,
+        requestedAt: { lt: expiry },
+      },
+      data: {
+        status: 'CANCELLED',
+        cancellationReason: 'SYSTEM',
+        cancelledAt: new Date(),
+      },
+    });
+
+    if (changed.count === 1) {
+      const ride = await prisma.ride.findUnique({
+        where: { id: candidate.id },
+      });
+      if (ride) expired.push(ride);
+    }
+  }
+
+  return expired;
+}
+
+/** Completes rides left awaiting customer confirmation for the configured grace period. */
+export async function autoCompleteAbandonedRides() {
+  const graceHours = Number(process.env.RIDE_AUTO_COMPLETE_AFTER_HOURS) || 24;
+  const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1_000);
+
+  const candidates = await prisma.ride.findMany({
+    where: {
+      status: 'IN_PROGRESS',
+      riderCompletedAt: { lt: cutoff },
+      customerCompletedAt: null,
+    },
+    select: { id: true },
+  });
+
+  const completed = [];
+
+  for (const candidate of candidates) {
+    const changed = await prisma.ride.updateMany({
+      where: {
+        id: candidate.id,
+        status: 'IN_PROGRESS',
+        riderCompletedAt: { lt: cutoff },
+        customerCompletedAt: null,
+      },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      },
+    });
+
+    if (changed.count === 1) {
+      const ride = await prisma.ride.findUnique({
+        where: { id: candidate.id },
+      });
+      if (ride) completed.push(ride);
+    }
+  }
+
+  return completed;
 }

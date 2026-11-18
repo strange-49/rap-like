@@ -1,7 +1,10 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { randomUUID } from 'node:crypto';
 import type { AuthContext } from '../../common/auth/auth-context';
 import { prisma } from '../../common/database/prisma';
+import { readJsonObject } from '../../common/http/body';
+import { chatMessagesByUser } from '../../common/security/limiters';
 
 function reply(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
@@ -11,18 +14,8 @@ function reply(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-async function readBody(req: IncomingMessage): Promise<any> {
-  let body = '';
-
-  for await (const chunk of req) {
-    body += chunk;
-  }
-
-  if (body.length > 12_000) {
-    throw new Error('Request body is too large.');
-  }
-
-  return body ? JSON.parse(body) : {};
+async function readBody(req: IncomingMessage) {
+  return readJsonObject(req, 12_000);
 }
 
 function errorMessage(message: string) {
@@ -312,17 +305,18 @@ export async function handleChatRoutes(
   }
 
   if (req.method === 'GET') {
-    const messages = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT m.id, m."rideId", m."senderId",
-              COALESCE(u."fullName", u.username, 'User') AS "senderName",
-              m.body, m."createdAt"
-       FROM "RideChatMessage" m
-       LEFT JOIN "User" u ON u.id = m."senderId"
-       WHERE m."rideId" = $1
-       ORDER BY m."createdAt" ASC
-       LIMIT 200`,
-      rideId,
-    );
+    const messages = await prisma.$queryRaw<any[]>`
+      SELECT * FROM (
+        SELECT m.id, m."rideId", m."senderId",
+               COALESCE(u."fullName", u.username, 'User') AS "senderName",
+               m.body, m."createdAt"
+        FROM "RideChatMessage" m
+        LEFT JOIN "User" u ON u.id = m."senderId"
+        WHERE m."rideId" = ${rideId}
+        ORDER BY m."createdAt" DESC
+        LIMIT 200
+      ) latest
+      ORDER BY latest."createdAt" ASC`;
 
     reply(res, 200, messages);
     return true;
@@ -342,18 +336,13 @@ export async function handleChatRoutes(
       return true;
     }
 
-    const rows = await prisma.$queryRawUnsafe<any[]>(
-      `INSERT INTO "RideChatMessage"
-         (id, "rideId", "senderId", body, "createdAt")
-       VALUES (
-         concat('chat_', md5(random()::text || clock_timestamp()::text)),
-         $1, $2, $3, NOW()
-       )
-       RETURNING id, "rideId", "senderId", body, "createdAt"`,
-      rideId,
-      auth.subjectId,
-      body,
-    );
+    await chatMessagesByUser.enforce(`chat:${auth.subjectId}`, 'You are sending messages too quickly.');
+
+    const messageId = `chat_${randomUUID().replace(/-/g, '')}`;
+    const rows = await prisma.$queryRaw<any[]>`
+      INSERT INTO "RideChatMessage" (id, "rideId", "senderId", body, "createdAt")
+      VALUES (${messageId}, ${rideId}, ${auth.subjectId}, ${body}, NOW())
+      RETURNING id, "rideId", "senderId", body, "createdAt"`;
 
     const message = rows[0];
 

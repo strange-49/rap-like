@@ -1,21 +1,23 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from '../layouts/AdminLayout'
-import { DashboardPage } from '../pages/AdminDashboardPage'
-import { AdminCustomersPage } from '../pages/AdminCustomersPage'
-import { AdminRidersPage } from '../pages/AdminRidersPage'
-import { AdminRidesPage } from '../pages/AdminRidesPage'
-import { AdminRideDetailPage } from '../pages/AdminRideDetailPage'
-import { AdminPaymentsPage } from '../pages/AdminPaymentsPage'
-import { AdminPaymentDetailPage } from '../pages/AdminPaymentDetailPage'
-import { AdminClientsPage } from '../pages/AdminClientsPage'
-import { AdminCorporateDetailPage } from '../pages/AdminCorporateDetailPage'
+const DashboardPage = lazy(() => import('../pages/AdminDashboardPage').then((module) => ({ default: module.DashboardPage })))
+const AdminCustomersPage = lazy(() => import('../pages/AdminCustomersPage').then((module) => ({ default: module.AdminCustomersPage })))
+const AdminRidersPage = lazy(() => import('../pages/AdminRidersPage').then((module) => ({ default: module.AdminRidersPage })))
+const AdminRidesPage = lazy(() => import('../pages/AdminRidesPage').then((module) => ({ default: module.AdminRidesPage })))
+const AdminRideDetailPage = lazy(() => import('../pages/AdminRideDetailPage').then((module) => ({ default: module.AdminRideDetailPage })))
+const AdminPaymentsPage = lazy(() => import('../pages/AdminPaymentsPage').then((module) => ({ default: module.AdminPaymentsPage })))
+const AdminPaymentDetailPage = lazy(() => import('../pages/AdminPaymentDetailPage').then((module) => ({ default: module.AdminPaymentDetailPage })))
+const AdminClientsPage = lazy(() => import('../pages/AdminClientsPage').then((module) => ({ default: module.AdminClientsPage })))
+const AdminCorporateDetailPage = lazy(() => import('../pages/AdminCorporateDetailPage').then((module) => ({ default: module.AdminCorporateDetailPage })))
 import { ROUTE_PATHS } from './route-paths'
-import { AdminModulePage } from '../pages/AdminModulePage'
-import { AdminSupportPage } from '../pages/AdminSupportPage'
+const AdminModulePage = lazy(() => import('../pages/AdminModulePage').then((module) => ({ default: module.AdminModulePage })))
+const AdminSupportPage = lazy(() => import('../pages/AdminSupportPage').then((module) => ({ default: module.AdminSupportPage })))
 
 export function AppRoutes() {
   return (
     <AdminLayout>
+      <Suspense fallback={<div role="status">Loading page…</div>}>
       <Routes>
         <Route path={ROUTE_PATHS.dashboard} element={<DashboardPage />} />
         <Route path={ROUTE_PATHS.customers} element={<AdminCustomersPage />} />
@@ -37,6 +39,7 @@ export function AppRoutes() {
           element={<Navigate to={ROUTE_PATHS.dashboard} replace />}
         />
       </Routes>
+      </Suspense>
     </AdminLayout>
   )
 }

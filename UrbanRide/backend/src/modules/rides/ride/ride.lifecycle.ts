@@ -45,6 +45,14 @@ export function canTransition(
   );
 }
 
+export function predecessorsOf(nextStatus: RideStatus): RideStatus[] {
+  return (Object.keys(allowedTransitions) as RideStatus[]).filter((status) =>
+    allowedTransitions[status].includes(nextStatus),
+  );
+}
+
+export const GENERIC_PATCH_TARGETS: readonly RideStatus[] = ['SEARCHING', 'DRIVER_ARRIVING'];
+
 export function assertTransition(
   currentStatus: RideStatus,
   nextStatus: RideStatus,

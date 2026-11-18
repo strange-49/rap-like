@@ -13,6 +13,7 @@ import {
   confirmRideCompletion,
   getCustomerRides,
   getRideById,
+  getRideLocation,
   getRideStartOtp,
   rateRide,
   type CreatedRide,
@@ -36,6 +37,8 @@ export function HomePage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [createdRide, setCreatedRide] = useState<CreatedRide | null>(null)
   const createdRideRef = useRef<CreatedRide | null>(null)
+
+  const [riderLocation, setRiderLocation] = useState<MapCoordinate | null>(null)
 
   const [rideStatus, setRideStatus] =
     useState<CreatedRide['status'] | null>(null)
@@ -186,6 +189,15 @@ export function HomePage() {
     customerRealtime.connect()
 
     const unsubscribe = customerRealtime.subscribe((event) => {
+      if (event.type === 'ride.location') {
+        const location = event.data?.location as { latitude?: unknown; longitude?: unknown } | undefined
+        const latitude = Number(location?.latitude)
+        const longitude = Number(location?.longitude)
+        if (event.rideId === createdRideRef.current?.id && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          setRiderLocation({ latitude, longitude })
+        }
+        return
+      }
       void handleRealtimeRideEvent(event)
     })
 
@@ -230,6 +242,20 @@ export function HomePage() {
       window.clearInterval(interval)
     }
   }, [createdRide?.id])
+
+  const trackedRideId = createdRide?.id ?? null
+  const trackedRideStatus = createdRide?.status ?? null
+  useEffect(() => {
+    if (!trackedRideId || !trackedRideStatus || !['ASSIGNED', 'DRIVER_ARRIVING', 'IN_PROGRESS'].includes(trackedRideStatus)) {
+      setRiderLocation(null)
+      return
+    }
+    let active = true
+    void getRideLocation(trackedRideId).then((location) => {
+      if (active && location) setRiderLocation({ latitude: location.latitude, longitude: location.longitude })
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [trackedRideId, trackedRideStatus])
 
   useEffect(() => {
     if (
@@ -521,6 +547,7 @@ export function HomePage() {
             <div id="ride-drawer-map" className="details-map-preview drawer-anchor"><MapView
               pickup={createdRide.pickupLatitude != null && createdRide.pickupLongitude != null ? { latitude: createdRide.pickupLatitude, longitude: createdRide.pickupLongitude } : pickupCoordinate}
               drop={createdRide.dropLatitude != null && createdRide.dropLongitude != null ? { latitude: createdRide.dropLatitude, longitude: createdRide.dropLongitude } : dropCoordinate}
+              rider={riderLocation ?? undefined}
               height={260}
             /></div>
             <div className="ride-details-stats"><div><small>Status</small><strong>{statusLabel(createdRide)}</strong></div><div><small>Estimated fare</small><strong>{fareLabel(createdRide) == null ? '—' : `₹${Number(fareLabel(createdRide)).toFixed(2)}`}</strong></div><div><small>Vehicle</small><strong>{createdRide.rideType === 'bike' ? 'Bike' : createdRide.rideType === 'auto' ? 'Auto' : 'Car'}</strong></div></div>
@@ -618,7 +645,7 @@ export function HomePage() {
         <div className={`route-modal-backdrop${mapFullscreen ? ' is-fullscreen' : ''}`} onMouseDown={(event) => { if (event.target === event.currentTarget) { setMapOpen(false); setMapFullscreen(false) } }}>
           <section className={`route-modal${mapFullscreen ? ' is-fullscreen' : ''}`} role="dialog" aria-modal="true" aria-labelledby="route-modal-title">
             <header className="route-modal-header"><div><span className="section-eyebrow">LIVE ROUTE PREVIEW</span><h2 id="route-modal-title">Explore your city</h2><p>Choose locations on the booking screen to preview your route.</p></div><div className="route-modal-actions"><button className="icon-button" type="button" aria-label={mapFullscreen ? 'Exit full screen' : 'Expand map'} onClick={() => setMapFullscreen((current) => !current)}>{mapFullscreen ? '⤢' : '⛶'}</button><button className="icon-button" type="button" aria-label="Close map" onClick={() => { setMapOpen(false); setMapFullscreen(false) }}>×</button></div></header>
-            <div className="route-modal-map"><MapView pickup={pickupCoordinate} drop={dropCoordinate} height={mapFullscreen ? 'calc(100vh - 160px)' : 'min(62vh, 620px)'} /></div>
+            <div className="route-modal-map"><MapView pickup={pickupCoordinate} drop={dropCoordinate} rider={riderLocation ?? undefined} height={mapFullscreen ? 'calc(100vh - 160px)' : 'min(62vh, 620px)'} /></div>
             <footer className="route-modal-footer"><span>{selectedPickup && selectedDrop ? 'Your selected route is shown on the map.' : 'No default locations are loaded.'}</span><button className="secondary-button" type="button" onClick={() => { setMapOpen(false); setMapFullscreen(false) }}>Done</button></footer>
           </section>
         </div>

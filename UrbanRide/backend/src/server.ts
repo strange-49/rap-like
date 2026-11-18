@@ -5,6 +5,11 @@ import { loadConfig } from './config/environment'
 import { consoleLogger } from './common/logging/logger'
 import { websocketManager } from './realtime/realtime'
 import { createAuthService } from './modules/auth/auth.service'
+import { registerAllJobHandlers } from './jobs/handlers'
+import { closeQueue, startWorker } from './jobs/queue'
+import { startRideEventBus } from './realtime/event-bus'
+import { closeRedis } from './infrastructure/redis'
+import { startRideMaintenance } from './jobs/ride-maintenance'
 
 const config = loadConfig(process.env)
 
@@ -19,7 +24,14 @@ const server = createApp(
 const websocketServer = new WebSocketServer({
   server,
   path: '/ws',
+  maxPayload: 64 * 1024,
+  perMessageDeflate: false,
 })
+
+registerAllJobHandlers()
+const stopWorker = process.env.RUN_WORKER === 'false' ? async () => undefined : startWorker()
+const stopEventBus = startRideEventBus((event) => websocketManager.broadcastRideEvent(event))
+const stopMaintenance = startRideMaintenance()
 
 websocketServer.on('connection', (client) => {
   websocketManager.add(client)
@@ -75,7 +87,7 @@ websocketServer.on('connection', (client) => {
       }
 
       const authContext =
-        await authService.authenticate(token)
+        await authService.authenticateActive(token)
 
       if (!authContext) {
         websocketManager.send(client, {
@@ -169,6 +181,23 @@ server.on('error', (error) => {
 
   process.exitCode = 1
 })
+
+let shuttingDown = false
+async function shutdown(signal: string) {
+  if (shuttingDown) return
+  shuttingDown = true
+  consoleLogger.info('backend.shutdown', { signal })
+  websocketServer.close()
+  server.close()
+  stopMaintenance()
+  await stopEventBus()
+  await stopWorker()
+  await closeQueue()
+  await closeRedis()
+}
+
+process.once('SIGTERM', () => { void shutdown('SIGTERM') })
+process.once('SIGINT', () => { void shutdown('SIGINT') })
 
 function isRecord(
   value: unknown,

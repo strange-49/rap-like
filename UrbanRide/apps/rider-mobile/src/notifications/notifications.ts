@@ -1,4 +1,4 @@
-import * as Device from 'expo-device';
+﻿import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 
 import { registerRiderDeviceToken } from '../config/api';
@@ -43,9 +43,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  await Notifications.setNotificationChannelAsync('ride-requests', {
+  await Notifications.setNotificationChannelAsync('ride-requests-v2', {
     name: 'Ride Requests',
     importance: Notifications.AndroidImportance.MAX,
+    enableVibrate: true,
     vibrationPattern: [0, 300, 200, 300],
     lockscreenVisibility:
       Notifications.AndroidNotificationVisibility.PUBLIC,

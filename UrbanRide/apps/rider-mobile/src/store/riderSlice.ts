@@ -78,6 +78,10 @@ const riderSlice = createSlice({
       state.isOnline = !state.isOnline;
     },
 
+    setOnlineStatus: (state, action: PayloadAction<boolean>) => {
+      state.isOnline = action.payload;
+    },
+
     setRequestedRides: (
       state,
       action: PayloadAction<Ride[]>,
@@ -146,6 +150,7 @@ const riderSlice = createSlice({
 
 export const {
   toggleOnline,
+  setOnlineStatus,
   setRequestedRides,
   clearRequestedRides,
   setRideHistory,

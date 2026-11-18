@@ -1,0 +1,92 @@
+# Continuous integration: every push and pull request is type-checked, tested against a real
+# Postgres + Redis, and the web apps are built. Uses pnpm.
+#
+# If your local pnpm is a different major version, change `version` below to match `pnpm -v`.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (typecheck, unit + integration tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: urbanride_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/urbanride_test
+      TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/urbanride_test
+      TEST_REDIS_URL: redis://localhost:6379/1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+      - run: pnpm run db:generate
+      - name: Apply database migrations
+        run: pnpm exec prisma migrate deploy
+      - run: pnpm --filter @ride-platform/backend typecheck
+      # Runs every test: unit tests plus the integration tests (the TEST_* variables above enable them).
+      - run: pnpm --filter @ride-platform/backend test
+
+  web:
+    name: Build ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer-web, client-dashboard, admin-dashboard]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+      - run: pnpm --filter @ride-platform/${{ matrix.app }} build
+
+  rider-mobile:
+    name: Typecheck rider-mobile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+      - run: pnpm --filter @ride-platform/rider-mobile exec tsc --noEmit

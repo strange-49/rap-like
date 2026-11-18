@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import type { AuthContext } from '../../common/auth/auth-context'
 import { AppError } from '../../common/errors/app-error'
+import { parseJsonObject, readRawBody } from '../../common/http/body'
 import {
   addEmployee,
   createAccount,
@@ -14,11 +15,9 @@ import {
 } from './corporate.service'
 
 async function readJsonBody(request: IncomingMessage) {
-  let body = ''
-  for await (const chunk of request) body += chunk
-  if (!body.trim()) throw new AppError('Request body is required.', 400, 'REQUEST_BODY_REQUIRED')
-  try { return JSON.parse(body) as Record<string, unknown> }
-  catch { throw new AppError('Invalid JSON body.', 400, 'INVALID_JSON') }
+  const raw = await readRawBody(request)
+  if (!raw.trim()) throw new AppError('Request body is required.', 400, 'REQUEST_BODY_REQUIRED')
+  return parseJsonObject(raw)
 }
 
 function sendJson(response: ServerResponse, statusCode: number, data: unknown) {

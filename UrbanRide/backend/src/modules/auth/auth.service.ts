@@ -1,11 +1,11 @@
 import {
   createHmac,
   randomBytes,
-  scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
 import type { AuthContext } from '../../common/auth/auth-context';
 import { platformRoles } from '../../common/authorization/roles';
+import { setRiderOfflineOnLogin } from '../notifications/rider-availability.repository';
 import {
   findUserByUsername,
   findUserById,
@@ -15,6 +15,8 @@ import {
 } from './auth.repository';
 import type { DevelopmentLoginRequest, DevelopmentSession } from './auth.types';
 import { authenticateCorporateEmployee, activateEmployeeInvitation } from '../corporate/corporate.service';
+import { ActiveUserCache } from '../../common/security/active-user';
+import { hashPassword, needsPasswordHashUpgrade, verifyPassword } from '../../common/security/password';
 
 export interface AuthService {
   login(input: DevelopmentLoginRequest): Promise<DevelopmentSession | null>;
@@ -22,6 +24,8 @@ export interface AuthService {
   activateCorporateEmployee(token: string, password: string): Promise<{ employeeId: string }>;
   signup(input: SignupRequest): Promise<DevelopmentSession | null>;
   authenticate(token: string): AuthContext | null;
+  authenticateActive(token: string): Promise<AuthContext | null>;
+  isUserActive(userId: string): Promise<boolean>;
   getRideStartOtpPreference(customerId: string): Promise<boolean | null>;
   setRideStartOtpPreference(customerId: string, enabled: boolean): Promise<boolean | null>;
 }
@@ -59,16 +63,18 @@ export function createAuthService(): AuthService {
   }
   const signingSecret = configuredSecret ?? randomBytes(32).toString('hex');
   const sessions = new Map<string, SessionRecord>();
+  const activeUsers = new ActiveUserCache(async (userId) => Boolean((await findUserById(userId))?.active));
 
   return {
     async login(input) {
       const username = input.username.trim().toLowerCase();
       const user = await findUserByUsername(username);
       if (!user || !user.active) return null;
-      if (!passwordMatches(input.password, username, user.passwordHash)) return null;
+      if (!(await verifyPassword(input.password, user.passwordHash, username))) return null;
       if (needsPasswordHashUpgrade(user.passwordHash)) {
-        await updateUserPasswordHash(user.id, hashPassword(input.password));
+        await updateUserPasswordHash(user.id, await hashPassword(input.password));
       }
+      if (user.role === 'RIDER') await setRiderOfflineOnLogin(user.id);
       return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled, {
         fullName: user.fullName, email: user.email, phone: user.phone, countryCode: user.countryCode,
       });
@@ -80,7 +86,7 @@ export function createAuthService(): AuthService {
       if (existingUser) return null;
       const user = await createUser({
         username: normalizedUsername,
-        passwordHash: hashPassword(input.password),
+        passwordHash: await hashPassword(input.password),
         role: 'CUSTOMER',
         tenantId: null,
         fullName: input.fullName.trim(),
@@ -97,9 +103,9 @@ export function createAuthService(): AuthService {
       const membership = await authenticateCorporateEmployee(input.accessCode, input.email);
       if (!membership) return null;
       const user = await findUserById(membership.employee.userId!);
-      if (!user || !user.active || !passwordMatches(input.password, user.username, user.passwordHash)) return null;
+      if (!user || !user.active || !(await verifyPassword(input.password, user.passwordHash, user.username))) return null;
       if (needsPasswordHashUpgrade(user.passwordHash)) {
-        await updateUserPasswordHash(user.id, hashPassword(input.password));
+        await updateUserPasswordHash(user.id, await hashPassword(input.password));
       }
       return createSession(user.id, user.role, user.tenantId, user.rideStartOtpEnabled, {
         fullName: user.fullName, email: user.email, phone: user.phone, countryCode: user.countryCode,
@@ -133,6 +139,16 @@ export function createAuthService(): AuthService {
         return session.principal;
       }
       return verifySignedSession(token, signingSecret);
+    },
+
+    async authenticateActive(token) {
+      const principal = this.authenticate(token);
+      if (!principal || !(await activeUsers.isActive(principal.subjectId))) return null;
+      return principal;
+    },
+
+    isUserActive(userId) {
+      return activeUsers.isActive(userId);
     },
   };
 
@@ -187,29 +203,3 @@ function verifySignedSession(token: string, secret: string): AuthContext | null 
   }
 }
 
-function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const derived = scryptSync(password, salt, 64).toString('hex');
-  return `scrypt$${salt}$${derived}`;
-}
-
-function passwordMatches(password: string, username: string, storedHash: string): boolean {
-  try {
-    // Current format uses a random per-password salt. The legacy format used
-    // the username as salt; it remains readable so existing accounts can log in.
-    const parts = storedHash.split('$');
-    const isModern = parts.length === 3 && parts[0] === 'scrypt';
-    const salt = isModern ? parts[1] : username;
-    const expectedHex = isModern ? parts[2] : storedHash;
-    if (!salt || !expectedHex || !/^[0-9a-f]+$/i.test(expectedHex) || expectedHex.length % 2 !== 0) return false;
-    const expected = Buffer.from(expectedHex, 'hex');
-    const actual = scryptSync(password, salt, expected.length);
-    return actual.length === expected.length && timingSafeEqual(actual, expected);
-  } catch {
-    return false;
-  }
-}
-
-function needsPasswordHashUpgrade(storedHash: string): boolean {
-  return !storedHash.startsWith('scrypt$');
-}

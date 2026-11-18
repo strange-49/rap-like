@@ -2,6 +2,7 @@ generator client {
   provider     = "prisma-client"
   output       = "../backend/src/generated/prisma"
   moduleFormat = "cjs"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -42,6 +43,7 @@ model User {
   phone               String?
   countryCode         String?
   rideStartOtpEnabled Boolean      @default(false)
+  isOnline            Boolean      @default(false)
   active              Boolean      @default(true)
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
@@ -49,10 +51,12 @@ model User {
   corporateEmployee   CorporateEmployee?
   supportConversations SupportConversation[] @relation("SupportCustomer")
   supportMessages      SupportMessage[]      @relation("SupportSender")
+  rideChatMessages     RideChatMessage[]
 
   @@index([role])
   @@index([tenantId])
   @@index([active])
+  @@index([role, isOnline, active])
 }
 
 model Ride {
@@ -86,14 +90,30 @@ model Ride {
   payment          Payment?
   rating           RideRating?
   startOtp         RideStartOtp?
+  chatMessages     RideChatMessage[]
 
-  @@index([customerId])
-  @@index([riderId])
-  @@index([corporateAccountId])
-  @@index([status])
+  @@index([customerId, requestedAt(sort: Desc)])
+  @@index([riderId, status])
+  @@index([corporateAccountId, requestedAt(sort: Desc)])
+  @@index([status, requestedAt])
+  @@unique([riderId], map: "Ride_one_active_per_rider", where: raw("status IN ('ASSIGNED', 'DRIVER_ARRIVING', 'IN_PROGRESS')"))
   @@index([requestedAt])
 }
 
+
+// Maps the already-migrated ride-chat table to prevent schema diffing from dropping it.
+model RideChatMessage {
+  id        String   @id
+  rideId    String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  ride   Ride @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([rideId, createdAt])
+}
 model RideRating {
   id         String   @id @default(cuid())
   rideId     String   @unique
@@ -140,6 +160,8 @@ enum PaymentStatus {
   AUTHORIZED
   CAPTURED
   FAILED
+  REFUND_PENDING
+  REFUND_FAILED
   REFUNDED
 }
 
@@ -152,6 +174,7 @@ model Payment {
   razorpayOrderId   String?       @unique
   razorpayPaymentId String?       @unique
   razorpaySignature String?
+  refundAttempt     Int           @default(0)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

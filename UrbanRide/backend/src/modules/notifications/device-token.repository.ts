@@ -30,14 +30,6 @@ export function findRiderDeviceTokens(
   });
 }
 
-export function findAllRiderDeviceTokens() {
-  return prisma.riderDeviceToken.findMany({
-    orderBy: {
-      createdAt: 'asc',
-    },
-  });
-}
-
 export function deleteRiderDeviceToken(
   token: string,
 ) {
@@ -46,4 +38,16 @@ export function deleteRiderDeviceToken(
       token,
     },
   });
+}
+
+export function findOnlineRiderDeviceTokens() {
+  return prisma.$queryRaw<Array<{ id: string; riderId: string; token: string; platform: string | null; createdAt: Date; updatedAt: Date }>>`
+    SELECT token, id, "riderId", platform, "createdAt", "updatedAt"
+    FROM "RiderDeviceToken"
+    WHERE "riderId" IN (
+      SELECT id FROM "User"
+      WHERE role = 'RIDER' AND active = true AND "isOnline" = true
+    )
+    ORDER BY "createdAt" ASC
+  `;
 }

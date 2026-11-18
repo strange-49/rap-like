@@ -1,6 +1,6 @@
 import {
   deleteRiderDeviceToken,
-  findAllRiderDeviceTokens,
+  findOnlineRiderDeviceTokens,
   findRiderDeviceTokens,
   registerRiderDeviceToken,
 } from './device-token.repository';
@@ -27,12 +27,11 @@ export function getRiderDeviceTokens(
   return findRiderDeviceTokens(riderId);
 }
 
-export function getAllRiderDeviceTokens() {
-  return findAllRiderDeviceTokens();
-}
-
 export function removeDeviceToken(
   token: string,
 ) {
   return deleteRiderDeviceToken(token);
+}
+export function getOnlineRiderDeviceTokens() {
+  return findOnlineRiderDeviceTokens();
 }

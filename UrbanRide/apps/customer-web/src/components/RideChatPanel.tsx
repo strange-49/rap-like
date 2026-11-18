@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { getToken } from '../services/auth'
 
 type ChatMessage = { id: string; senderId: string; senderName: string; body: string; createdAt: string }
-const API = 'http://localhost:3000'
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 export function RideChatPanel({ rideId, rideStatus }: { rideId: string; rideStatus: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])

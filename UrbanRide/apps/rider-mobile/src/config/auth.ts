@@ -1,3 +1,6 @@
+
+import * as SecureStore from 'expo-secure-store';
+
 export type RiderPrincipal = {
   subjectId: string;
   role: 'RIDER';
@@ -12,11 +15,51 @@ export type RiderSession = {
   principal: RiderPrincipal;
 };
 
+const SESSION_STORAGE_KEY = 'urbanride.rider.session';
+
 let currentSession: RiderSession | null = null;
 const sessionListeners = new Set<() => void>();
 
 function notifySessionListeners(): void {
   sessionListeners.forEach((listener) => listener());
+}
+
+function isUsableSession(value: unknown): value is RiderSession {
+  if (typeof value !== 'object' || value === null) return false;
+
+  const candidate = value as Partial<RiderSession>;
+
+  return (
+    typeof candidate.token === 'string' &&
+    candidate.token.length > 0 &&
+    typeof candidate.expiresAt === 'string' &&
+    Number.isFinite(Date.parse(candidate.expiresAt)) &&
+    Date.parse(candidate.expiresAt) > Date.now() &&
+    typeof candidate.principal?.subjectId === 'string' &&
+    candidate.principal.subjectId.length > 0 &&
+    candidate.principal.role === 'RIDER'
+  );
+}
+
+/** Call once at startup, before deciding whether to show the login screen. */
+export async function restoreRiderSession(): Promise<void> {
+  if (currentSession) return;
+
+  try {
+    const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
+    if (!raw) return;
+
+    const parsed: unknown = JSON.parse(raw);
+
+    if (isUsableSession(parsed)) {
+      currentSession = parsed;
+      notifySessionListeners();
+    } else {
+      await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
+    }
+  } catch {
+    // A corrupt or unreadable entry means the rider signs in again.
+  }
 }
 
 export function subscribeToRiderSession(
@@ -26,10 +69,14 @@ export function subscribeToRiderSession(
   return () => sessionListeners.delete(listener);
 }
 
-export function setRiderSession(
-  session: RiderSession,
-): void {
+export function setRiderSession(session: RiderSession): void {
   currentSession = session;
+
+  void SecureStore.setItemAsync(
+    SESSION_STORAGE_KEY,
+    JSON.stringify(session),
+  ).catch(() => undefined);
+
   notifySessionListeners();
 }
 
@@ -50,10 +97,14 @@ export function getRiderAuthToken(): string | null {
 }
 
 export function clearRiderSession(): void {
-  if (!currentSession) {
-    return;
-  }
-
+  const hadSession = currentSession !== null;
   currentSession = null;
-  notifySessionListeners();
+
+  void SecureStore.deleteItemAsync(SESSION_STORAGE_KEY).catch(
+    () => undefined,
+  );
+
+  if (hadSession) {
+    notifySessionListeners();
+  }
 }

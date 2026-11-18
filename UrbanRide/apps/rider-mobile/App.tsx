@@ -20,9 +20,11 @@ import * as Notifications from 'expo-notifications';
 import AppNavigator, {
   navigationRef,
 } from './src/navigation/AppNavigator';
+import RiderLocationReporter from './src/location/RiderLocationReporter';
 
 import {
   getRiderSession,
+  restoreRiderSession,
   subscribeToRiderSession,
 } from './src/config/auth';
 
@@ -426,6 +428,15 @@ export default function App() {
       Boolean(getRiderSession()),
     );
 
+  const [sessionRestored, setSessionRestored] = useState(false);
+
+  useEffect(() => {
+    void restoreRiderSession().finally(() => {
+      setAuthenticated(Boolean(getRiderSession()));
+      setSessionRestored(true);
+    });
+  }, []);
+
   const [
     rideRequest,
     setRideRequest,
@@ -543,6 +554,10 @@ export default function App() {
     setAuthenticated(true);
   }
 
+  if (!sessionRestored) {
+    return <View style={{ flex: 1 }} />;
+  }
+
   return (
     <Provider store={store}>
       <View style={{ flex: 1 }}>
@@ -554,6 +569,8 @@ export default function App() {
             handleLoginSuccess
           }
         />
+
+        {authenticated && <RiderLocationReporter />}
 
         {rideRequest && (
           <RideRequestOverlay

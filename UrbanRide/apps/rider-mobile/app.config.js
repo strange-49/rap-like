@@ -13,6 +13,10 @@ module.exports = {
 
     plugins: [
       'expo-notifications',
+      ['expo-location', {
+        locationWhenInUsePermission: 'UrbanRide uses your location while you are online to find nearby requests and share active trip progress.',
+      }],
+      'expo-secure-store',
       '@maplibre/maplibre-react-native',
     ],
   },
